@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>first three.js app</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+    #container {
+      background: black;
+    }
+    #info {
+      color: white;
+    }
+  </style>
+  </head>
+  <body>
+    <div id="container">
+
+      <div id="info">
+        <h3>axes</h3>
+        <p>x: red <br> y: green <br> z: blue </p>
+        <h3>endpoints</h3>
+        <p>start: green <br> end: yellow </p>
+      </div>
+      <button type="button" id="load-button">load satellite positions</button>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/stats.min.js"></script>
+    <script src="js/stuff.js"></script>
+
+    </div>
+  </body>
+</html>
+
