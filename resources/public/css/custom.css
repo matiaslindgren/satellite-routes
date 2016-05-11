@@ -1,0 +1,20 @@
+/* override bootstrap navbar styling */
+
+.navbar {
+  margin-bottom: 0; /* remove space between canvas and navbar */
+  border-radius: 0; /* make navbar corners straight */
+}
+
+body {
+  background-color: #333;
+}
+
+.generate-info p, h4, code, td, th {
+  color: #ccc;
+}
+.generate-info code, th {
+  background-color: #333;
+}
+.generate-info td {
+  background-color: #444;
+}

@@ -4,11 +4,30 @@
 <script src="js/threejs/libs/three.min.js"></script>
 <script src="js/threejs/libs/dat.gui.min.js"></script>
 <script src="js/threejs/libs/OrbitControls.js"></script>
+<!--<script src="js/vendor/jquery-ui.min.js"></script>-->
+
+<!-- Place the dat GUI instance in the right upper corner
+     of the graphics canvas -->
+<style>
+  #graphics-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  #gui-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+  }
+</style>
 {% endblock %}
 
 {% block main_container %}
-<button type="button" id="load-button">load satellite positions</button>
+<!-- The threejs canvas will be appended here -->
 <div id="graphics-container">
+  <!-- A dat GUI instance will be appended here -->
+  <div id="gui-container"></div> 
   <script src="js/threejs/graphicsMain.js"></script>
 </div>
 {% endblock main_container %}

@@ -1,15 +1,5 @@
 "use strict";
 
-var server_resp;
-$("#load-button").bind({
-  click: function() {
-    $.getJSON( "generate", function(response) {
-      server_resp = response;
-      loadSatellites(response);
-    });
-  }
-});
-
 //all toggles could be merged into one toggle function taking an array as
 //parameter
 function toggleSatelliteConnections() {
@@ -36,7 +26,7 @@ function toggleCoordinateAxes() {
   z_axis.visible = !z_axis.visible;
 }
 function toggleSolutionPath() {
-  var colorHex = controlsGUI.showSolutionPath ? 0x00ff00 : 0xff6600;
+  var colorHex = satellitesGUI.showSolutionPath ? 0x00ff00 : 0xff6600;
   connectionPath.forEach(function(element) {
     element.material.color.setHex(colorHex);
   });
@@ -62,7 +52,7 @@ function init() {
 
   var innerwidth = window.innerWidth;
   var innerheight = window.innerHeight;
-
+  
   camera_far_frustum = 100000;
 
   camera = new THREE.PerspectiveCamera(
@@ -90,32 +80,54 @@ function init() {
 
 }
 
-var controlsGUI;
+var satellitesGUI;
 
 function loadControls() {
 
-  var ControlsGUI = function() {
+  var SatelliteConstellation = function() {
+    this.satelliteCount = 20;
+    this.generateSatellites = function() {
+      $.getJSON(
+        "generate", 
+        { satelliteCount: this.satelliteCount },
+        function(response) { loadSatellites(response); }
+      );
+    }
+    this.showSatellites = true;
+    this.showConnections = true;
+    this.showSolutionPath = true;
+
     this.showAxes = false;
     this.showEquator = false;
     this.showPrimeMeridian = false;
-    this.showSatellites = true;
-    this.showSatelliteConnections = true;
-    this.showSolutionPath = true;
   };
-  controlsGUI = new ControlsGUI();
-  gui = new dat.GUI();
-  gui.add(controlsGUI, "showAxes")
-    .onChange(toggleCoordinateAxes);
-  gui.add(controlsGUI, "showEquator")
-    .onChange(toggleEquator);
-  gui.add(controlsGUI, "showPrimeMeridian")
-    .onChange(togglePrimeMeridian);
-  gui.add(controlsGUI, "showSatellites")
+
+  satellitesGUI = new SatelliteConstellation();
+
+  gui = new dat.GUI({ autoPlace: false, width: 300 });
+  $("#gui-container").append(gui.domElement);
+  //$("#gui-container").draggable();
+
+  var satFolder = gui.addFolder("Satellites");
+
+  satFolder.add(satellitesGUI, "satelliteCount", 0, 100).step(1);
+  satFolder.add(satellitesGUI, "generateSatellites");
+  satFolder.add(satellitesGUI, "showSatellites")
     .onChange(toggleSatellites);
-  gui.add(controlsGUI, "showSatelliteConnections")
+  satFolder.add(satellitesGUI, "showConnections")
     .onChange(toggleSatelliteConnections);
-  gui.add(controlsGUI, "showSolutionPath")
+  satFolder.add(satellitesGUI, "showSolutionPath")
     .onChange(toggleSolutionPath);
+  
+  var earthFolder = gui.addFolder("Earth");
+
+  earthFolder.add(satellitesGUI, "showAxes")
+    .onChange(toggleCoordinateAxes);
+  earthFolder.add(satellitesGUI, "showEquator")
+    .onChange(toggleEquator);
+  earthFolder.add(satellitesGUI, "showPrimeMeridian")
+    .onChange(togglePrimeMeridian);
+
 
   console.log("controls loaded");
 }
@@ -163,7 +175,7 @@ function loadSatellites(data) {
     
     satelliteMeshes[index] = satellite;
 
-    satellite.visible = controlsGUI.showSatellites;
+    satellite.visible = satellitesGUI.showSatellites;
 
     satellite.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -193,7 +205,7 @@ function loadSatellites(data) {
     var line_material = new THREE.LineBasicMaterial({ color: 0xff6600 });
     var line = new THREE.Line(line_geometry, line_material);
 
-    line.visible = controlsGUI.showSatelliteConnections;
+    line.visible = satellitesGUI.showConnections;
 
     if (element[3].is_solution_path)
       connectionPath.push(line);
@@ -203,7 +215,7 @@ function loadSatellites(data) {
     scene.add(line);
   });
 
-  if (controlsGUI.showSolutionPath)
+  if (satellitesGUI.showSolutionPath)
     toggleSolutionPath();
 
   console.log("satellites loaded");
@@ -264,8 +276,8 @@ function loadEquator() {
   equator_geom2.vertices = equator2.getPoints(50);
   equator[1] = new THREE.Line(equator_geom2, equator_material);
 
-  equator[0].visible = controlsGUI.showEquator;
-  equator[1].visible = controlsGUI.showEquator;
+  equator[0].visible = satellitesGUI.showEquator;
+  equator[1].visible = satellitesGUI.showEquator;
 
   scene.add(equator[0]);
   scene.add(equator[1]);
@@ -302,8 +314,8 @@ function loadPrimeMeridian() {
 
   primeMeridian[1] = new THREE.Line(meridian_geom2, meridian_material);
 
-  primeMeridian[0].visible = controlsGUI.showPrimeMeridian;
-  primeMeridian[1].visible = controlsGUI.showPrimeMeridian;
+  primeMeridian[0].visible = satellitesGUI.showPrimeMeridian;
+  primeMeridian[1].visible = satellitesGUI.showPrimeMeridian;
 
   scene.add(primeMeridian[0]);
   scene.add(primeMeridian[1]);
@@ -365,7 +377,7 @@ function loadCoordinateAxes() {
   y_axis = new THREE.Line(y_axis_geom, y_material);
   z_axis = new THREE.Line(z_axis_geom, z_material);
 
-  x_axis.visible = y_axis.visible = z_axis.visible = controlsGUI.showAxes;
+  x_axis.visible = y_axis.visible = z_axis.visible = satellitesGUI.showAxes;
 
   scene.add(x_axis);
   scene.add(y_axis);
@@ -378,6 +390,12 @@ function render() {
   requestAnimationFrame(render);
   renderer.render(scene, camera);
 }
+
+window.addEventListener('resize', function () {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+});
 
 init();
 render();

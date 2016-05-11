@@ -14,7 +14,11 @@
 (def EARTH-RADIUS 6371.0)
 
 (defn generate-json [query]
-  (let [data (parser/generate-data 35 EARTH-RADIUS) ;generate-data parameter should come from frontend
+  (pprint/pprint query)
+  (let [sat-count (if-let [sat-count-str (-> query :params :satelliteCount)]
+                    (Integer/parseInt sat-count-str)
+                    20)
+        data (parser/generate-data sat-count EARTH-RADIUS)
         sat-graph (core/sat-graph-with-endpoints data)
         nodes (core/graph-nodes sat-graph)
         all-edges (core/graph-edges sat-graph)
@@ -30,8 +34,12 @@
         json-response)
       (layout/render "generate.html" json-data))))
 
+(defn about-page []
+  (layout/render "about.html"))
+
 
 (defroutes home-routes
   (GET "/" [] (app-page))
-  (GET "/generate" [] #(generate-json %)))
+  (GET "/generate" [] #(generate-json %))
+  (GET "/about" [] (about-page)))
 
