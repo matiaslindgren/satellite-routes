@@ -3,7 +3,7 @@
 var server_resp;
 $("#load-button").bind({
   click: function() {
-    $.getJSON( "app?4", function(response) { //query int should be manual
+    $.getJSON( "app?3", function(response) { //query int should be manual
       server_resp = response;
       loadSatellites(response);
     });

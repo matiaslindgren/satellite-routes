@@ -23,9 +23,6 @@
           json-response {:status 200
                          :headers {"Content-Type" "application/json"}
                          :body (json/generate-string json-data)}]
-      (pprint/pprint edges)
-      (pprint/pprint edges-with-solution)
-      (println (count edges))
     json-response)))
 
 (defroutes home-routes

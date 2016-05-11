@@ -46,7 +46,7 @@
   {:uberjar {:omit-source true
              
              :aot :all
-             :uberjar-name "temp-app.jar"
+             :uberjar-name "satellite-routes.jar"
              :source-paths ["env/prod/clj"]
              :resource-paths ["env/prod/resources"]}
    :dev           [:project/dev :profiles/dev]
