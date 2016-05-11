@@ -3,7 +3,7 @@
 var server_resp;
 $("#load-button").bind({
   click: function() {
-    $.getJSON( "app?3", function(response) { //query int should be manual
+    $.getJSON( "generate", function(response) {
       server_resp = response;
       loadSatellites(response);
     });
@@ -39,6 +39,14 @@ function toggleSolutionPath() {
   var colorHex = controlsGUI.showSolutionPath ? 0x00ff00 : 0xff6600;
   connectionPath.forEach(function(element) {
     element.material.color.setHex(colorHex);
+  });
+}
+
+function removeGraphicsObjects(array) {
+  // Removes all Object3D instances from the scene.
+  // Assumes all instances are children of the scene.
+  array.forEach(function(element) {
+    scene.remove(element);
   });
 }
 
@@ -121,11 +129,14 @@ function loadSatellites(data) {
    * Constructs the graphical representation from satellite data.
    * Start and end points should be provided with the satellites.
    */
+
+  if (satelliteMeshes.length > 0) 
+    removeGraphicsObjects(satelliteMeshes);
+  if (satelliteConnections.length > 0) 
+    removeGraphicsObjects(satelliteConnections);
+  if (connectionPath.length > 0) 
+    removeGraphicsObjects(connectionPath);
   
-  if (satelliteMeshes.length > 0) {
-    alert("Satellite data has already been loaded."); // replace this with ajax red text at button
-    return;
-  }
 
   var sat_size = 150;
   var geo;
@@ -134,10 +145,10 @@ function loadSatellites(data) {
   data.nodes.forEach(function(element, index) {
 
     if (element.name == "START") {
-      geo = new THREE.SphereGeometry(sat_size, 32, 32);
+      geo = new THREE.SphereGeometry(sat_size/2, 4, 4);
       mat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
     } else if (element.name == "END") {
-      geo = new THREE.SphereGeometry(sat_size, 32, 32);
+      geo = new THREE.SphereGeometry(sat_size/2, 4, 4);
       mat = new THREE.MeshLambertMaterial({ color: 0xffff00 });
     } else {
       geo = new THREE.BoxGeometry(sat_size, sat_size, sat_size);
@@ -304,7 +315,7 @@ function loadPrimeMeridian() {
 
 function loadLights() {
 
-  var ambientLight = new THREE.AmbientLight( 0xffffff, 0.2 );
+  var ambientLight = new THREE.AmbientLight( 0xffffff, 0.4 );
   scene.add( ambientLight );
 
   var sun = new THREE.PointLight( 0xffffff, 1, 0 );

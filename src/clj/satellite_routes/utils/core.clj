@@ -1,107 +1,12 @@
 (ns satellite-routes.utils.core
   (:require [loom.graph :as graph]
             [loom.alg :as graph-alg]
-            [clojure-csv.core :as csv]
             [clojure.string :as string]
             [clojure.pprint :as pprint]
             [satellite-routes.utils.algorithm :as alg]))
 
 
 (def EARTH-RADIUS 6371.0)
-
-
-(defn generate-data
-  " Generates satellite position data from 0 to n-1 and a random route with a start and end position. "
-  [n] 
-  (let [rand-geo-loc #(- (rand 360) 180)]
-    (loop [sat-n 0
-           hashmap {:satellites []}]
-      (if (>= sat-n n)
-        (let [start-lat (rand-geo-loc)
-              start-long (rand-geo-loc)
-              end-lat (rand-geo-loc)
-              end-long (rand-geo-loc)]
-          (assoc hashmap :route (conj [] start-lat start-long end-lat end-long))))
-        (let [lat (rand-geo-loc)
-              long (rand-geo-loc)
-              alt (+ (rand 400) 300)
-              sat-vec (:satellites hashmap)]
-          (recur (inc sat-n)
-                 (assoc hashmap :satellites
-                   (conj sat-vec {:name (str "SAT" sat-n)
-                                  :geo-pos [lat long alt]})))))))
-
-(defn satellite-in-cartesian
-  " Converts the position of the satellite given as parameter from [latitude longitude altitude] into [x y z]. Assumes that the earth is a sphere centered at the origin with the coordinate axes following the ECEF model. "
-  [satellite earth-radius]
-  (let [[lat long alt] (:geo-pos satellite)
-        dist-from-origin (+ alt earth-radius)
-        cartesian-pos (alg/as-cartesian dist-from-origin
-                                        lat
-                                        long)]
-    {:name (:name satellite)
-     :pos cartesian-pos}))
-        
-        
-
-(defn parse-generated-data
-  " Converts all geographic coordinates in raw-map into cartesian coordinates. "
-  [raw-map]
-  (let [geo-satellites (:satellites raw-map)
-        [start-lat start-long
-         end-lat end-long] (:route raw-map)
-         earth-surface (+ EARTH-RADIUS 0.1)
-        route-start (alg/as-cartesian earth-surface
-                                      start-lat
-                                      start-long)
-        route-end (alg/as-cartesian earth-surface
-                                      end-lat
-                                      end-long)]
-    {:satellites (vec (map #(sat-from-geo % EARTH-RADIUS) geo-satellites))
-     :route {:start route-start
-             :end route-end}}))
-        
-
-(defn parse-data-file
-  " Opens and parses the data file. Returns a hashmap with all the data. "
-  [filepath] ; could be switched to json, url or whatever
-  (loop [lines (csv/parse-csv (slurp filepath))
-         hashmap {:satellites []}]
-    (if (empty? lines)
-      hashmap
-      (let [line (first lines)
-            [label & values] line]
-        (cond 
-          (string/includes? label "#SEED")
-            (recur (rest lines)
-                   (assoc hashmap :seed (first (re-seq #"\d\.\d*" label))))
-          (string/includes? label "ROUTE") 
-            (let [double-values (map #(Double/parseDouble %) values)
-                  [start-lat start-long end-lat end-long] double-values
-                  dist-from-earth-center (+ EARTH-RADIUS 0.1)
-                  [xs ys zs] (alg/as-cartesian dist-from-earth-center
-                                               start-lat
-                                               start-long)
-                  [xe ye ze] (alg/as-cartesian dist-from-earth-center
-                                               end-lat
-                                               end-long)]
-              (recur (rest lines)
-                     (assoc hashmap :route {:start [xs ys zs]
-                                            :end [xe ye ze]})))
-          :else ; Assuming all other blocks are sat-positions
-            (let [double-values (map #(Double/parseDouble %) values)
-                  [latitude longitude altitude] double-values
-                  dist-from-earth-center (+ EARTH-RADIUS altitude)
-                  [x y z] (alg/as-cartesian dist-from-earth-center
-                                            latitude
-                                            longitude)]
-              (recur (rest lines)
-                     ; append new satellite into satellites vector
-                     (assoc hashmap :satellites 
-                            (conj (:satellites hashmap)
-                                   {:name label
-                                    :pos [x y z]})))))))))
-
 
 (defn sat-graph-with-edges
   " Takes as parameter the graph of satellite nodes with no edges and adds edges between every node. "
@@ -211,13 +116,15 @@
 (defn edge-is-in-solution
   " Helper for apply-solution-path. Returns true if (first edge) and (second edge) are found in consequtive positions in the sequence of nodes called solution-path. "
   [edge solution-path]
-  (let [edge-nodes #{(first edge) (second edge)}]
-    (loop [solution solution-path]
-      (let [sol-nodes #{(first solution) (second solution)}]
-        (cond
-          (or (empty? solution) (contains? sol-nodes nil)) false
-          (= edge-nodes sol-nodes) true
-          :else (recur (rest solution)))))))
+  (if (empty? solution-path)
+    false
+    (let [edge-nodes #{(first edge) (second edge)}]
+      (loop [solution solution-path]
+        (let [sol-nodes #{(first solution) (second solution)}]
+          (cond
+            (or (empty? solution) (contains? sol-nodes nil)) false
+            (= edge-nodes sol-nodes) true
+            :else (recur (rest solution))))))))
 
 
 (defn apply-solution-path
@@ -238,18 +145,6 @@
                (conj processed-edges new-edge))))))
 
 
-; debugging stuff:
-
-(defn data-path [n]
-  (str "/home/matias/koodi/reaktor-orbital-challenge/resources/data" n))
-
-
-(defn test-apply-solution
-  [data-n]
-  (let [satgraph (sat-graph-with-endpoints (parse-data (data-path data-n)))
-        solved (solve-route satgraph)]
-    (println "applying solution")
-    (pprint/pprint (apply-solution-path (graph-edges satgraph) solved))))
   
 
 ; -----
