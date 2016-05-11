@@ -1,0 +1,14 @@
+{% extends "index.html" %}
+
+{% block script_imports %}
+<script src="js/threejs/libs/three.min.js"></script>
+<script src="js/threejs/libs/dat.gui.min.js"></script>
+<script src="js/threejs/libs/OrbitControls.js"></script>
+{% endblock %}
+
+{% block main_container %}
+<button type="button" id="load-button">load satellite positions</button>
+<div id="graphics-container">
+  <script src="js/threejs/graphicsMain.js"></script>
+</div>
+{% endblock main_container %}

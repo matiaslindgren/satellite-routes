@@ -6,7 +6,9 @@
             [clojure.pprint :as pprint]
             [satellite-routes.utils.algorithm :as alg]))
 
+
 (def EARTH-RADIUS 6371.0)
+
 
 (defn parse-data
   " Opens and parses the data file. Returns a hashmap with all the data. "
@@ -31,8 +33,6 @@
                   [xe ye ze] (alg/as-cartesian dist-from-earth-center
                                                end-lat
                                                end-long)]
-              (println "ROUTE:")
-              (pprint/pprint double-values)
               (recur (rest lines)
                      (assoc hashmap :route {:start [xs ys zs]
                                             :end [xe ye ze]})))
@@ -43,16 +43,12 @@
                   [x y z] (alg/as-cartesian dist-from-earth-center
                                             latitude
                                             longitude)]
-              (println "SATELLITE:" label)
-              (pprint/pprint double-values)
               (recur (rest lines)
                      ; append new satellite into satellites vector
                      (assoc hashmap :satellites 
                             (conj (:satellites hashmap)
                                    {:name label
                                     :pos [x y z]})))))))))
-
-
 
 
 (defn sat-graph-with-edges
@@ -75,8 +71,34 @@
                                (> distance 0))]
                   [sat-a sat-b distance])))))
 
+
+(defn undirected-non-duplicate-edges
+  " Returns all unique edges in sat-graph. "
+  [all-edges]
+  (loop [edges all-edges
+         filtered-edges []
+         look-up-table {}]
+    (if (empty? edges)
+      filtered-edges
+      (let [[node-a node-b] (first edges)
+            name-a (:name node-a)
+            name-b (:name node-b)
+            key-a (keyword name-a)
+            key-b (keyword name-b)]
+        (if (or (contains? (key-a look-up-table) name-b)
+                (contains? (key-b look-up-table) name-a))
+          (recur (rest edges) 
+                 filtered-edges 
+                 look-up-table)
+          (recur (rest edges) 
+                 (conj filtered-edges (first edges))
+                 (assoc look-up-table 
+                        key-a
+                        (set (conj (key-a look-up-table) name-b)))))))))
+
+
 (defn graph-edges
-  " Returns the weighted edges of a satellite graph. "
+  " Returns the weighted unique edges of an undirected satellite graph. "
   [sat-graph]
   (loop [edges (graph/edges sat-graph)
          with-weights []]
@@ -88,10 +110,12 @@
         (recur (rest edges)
                (conj with-weights new-edge))))))
 
+
 (defn graph-nodes
   " Returns the nodes of a satellite graph. "
   [sat-graph]
   (graph/nodes sat-graph))
+
 
 (defn satellite-graph
   " Takes as parameter a vector of satellites and creates a weighted graph containing these satellites as nodes. Calls the function that adds edges to the graph and returns a graph with all edges added. "
@@ -103,6 +127,7 @@
       (let [sat (first satellites)]
         (recur (rest satellites)
                (graph/add-nodes wgraph sat))))))
+
 
 (defn sat-graph-with-endpoints
   [parsed-data]
@@ -121,18 +146,62 @@
     ;(pprint/pprint start-node ) (pprint/pprint end-node ) (pprint/pprint sat-graph)
     sat-graph))
 
+
 (defn solve-route
+  " Uses Dijkstra's algorithm to find the shortest path between nodes named START and END. Returns the solution as a sequence of nodes, START and END included. "
   [sat-graph]
-  (pprint/pprint (graph/nodes sat-graph))
   (let [nodes (graph/nodes sat-graph)
         start (some #(if (= (:name %) "START") %) nodes)
         end (some #(if (= (:name %) "END") %) nodes)]
     (graph-alg/dijkstra-path sat-graph start end)))
 
+
+(defn edge-is-in-solution
+  " Helper for apply-solution-path. Returns true if (first edge) and (second edge) are found in consequtive positions in the sequence of nodes called solution-path. "
+  [edge solution-path]
+  (let [edge-nodes #{(first edge) (second edge)}]
+    (loop [solution solution-path]
+      (let [sol-nodes #{(first solution) (second solution)}]
+        (cond
+          (or (empty? solution) (contains? sol-nodes nil)) false
+          (= edge-nodes sol-nodes) true
+          :else (recur (rest solution)))))))
+
+
+(defn apply-solution-path
+  " Adds a boolean value is_solution_path (= true) to each edge pair in sat-edges if the edge pair is part of the sequence of nodes in solution-path. Else false.
+    This allows easier graphical representations of the shortest path via satellites. 
+    Assumes undirected edges. "
+  [sat-edges solution-path]
+  (loop [edges sat-edges
+         processed-edges []]
+    (if (empty? edges)
+      processed-edges
+      (let [new-edge (conj (first edges) 
+                           {:is_solution_path 
+                             (edge-is-in-solution
+                               (first edges)
+                               solution-path)})]
+        (recur (rest edges)
+               (conj processed-edges new-edge))))))
+
+
+; debugging stuff:
+
 (defn data-path [n]
   (str "/home/matias/koodi/reaktor-orbital-challenge/resources/data" n))
+
+
+(defn test-apply-solution
+  [data-n]
+  (let [satgraph (sat-graph-with-endpoints (parse-data (data-path data-n)))
+        solved (solve-route satgraph)]
+    (println "applying solution")
+    (pprint/pprint (apply-solution-path (graph-edges satgraph) solved))))
+  
+
 ; -----
-; utils
+; utils, could be moved to tests
 ; -----
 
 (defn positions-valid?
@@ -150,7 +219,5 @@
         (if (< sat-dist EARTH-RADIUS)
           false
           (recur (rest satellites)))))))
-
-    
 
 
