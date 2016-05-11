@@ -10,7 +10,59 @@
 (def EARTH-RADIUS 6371.0)
 
 
-(defn parse-data
+(defn generate-data
+  " Generates satellite position data from 0 to n-1 and a random route with a start and end position. "
+  [n] 
+  (let [rand-geo-loc #(- (rand 360) 180)]
+    (loop [sat-n 0
+           hashmap {:satellites []}]
+      (if (>= sat-n n)
+        (let [start-lat (rand-geo-loc)
+              start-long (rand-geo-loc)
+              end-lat (rand-geo-loc)
+              end-long (rand-geo-loc)]
+          (assoc hashmap :route (conj [] start-lat start-long end-lat end-long))))
+        (let [lat (rand-geo-loc)
+              long (rand-geo-loc)
+              alt (+ (rand 400) 300)
+              sat-vec (:satellites hashmap)]
+          (recur (inc sat-n)
+                 (assoc hashmap :satellites
+                   (conj sat-vec {:name (str "SAT" sat-n)
+                                  :geo-pos [lat long alt]})))))))
+
+(defn satellite-in-cartesian
+  " Converts the position of the satellite given as parameter from [latitude longitude altitude] into [x y z]. Assumes that the earth is a sphere centered at the origin with the coordinate axes following the ECEF model. "
+  [satellite earth-radius]
+  (let [[lat long alt] (:geo-pos satellite)
+        dist-from-origin (+ alt earth-radius)
+        cartesian-pos (alg/as-cartesian dist-from-origin
+                                        lat
+                                        long)]
+    {:name (:name satellite)
+     :pos cartesian-pos}))
+        
+        
+
+(defn parse-generated-data
+  " Converts all geographic coordinates in raw-map into cartesian coordinates. "
+  [raw-map]
+  (let [geo-satellites (:satellites raw-map)
+        [start-lat start-long
+         end-lat end-long] (:route raw-map)
+         earth-surface (+ EARTH-RADIUS 0.1)
+        route-start (alg/as-cartesian earth-surface
+                                      start-lat
+                                      start-long)
+        route-end (alg/as-cartesian earth-surface
+                                      end-lat
+                                      end-long)]
+    {:satellites (vec (map #(sat-from-geo % EARTH-RADIUS) geo-satellites))
+     :route {:start route-start
+             :end route-end}}))
+        
+
+(defn parse-data-file
   " Opens and parses the data file. Returns a hashmap with all the data. "
   [filepath] ; could be switched to json, url or whatever
   (loop [lines (csv/parse-csv (slurp filepath))
