@@ -16,6 +16,11 @@ To start a web server for the application, run:
 
     lein run
 
+## References
+
+Home page background: https://www.pexels.com/photo/earth-space-cosmos-5439/
+Earth sphere texture: http://planetpixelemporium.com/earth.html
+http://visibleearth.nasa.gov/
 ## License
 
 Copyright © 2016 FIXME

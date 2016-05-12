@@ -8,17 +8,69 @@
             [clj-json.core :as json]
             [clojure.java.io :as io]))
 
+
+; --------------------------------------
+; Helper functions for the JSON requests
+; --------------------------------------
+
+(defn integer-or-nil
+  " Returns the parameter as an integer if the parameter is string containing an unsigned integer, else nil. "
+  [string]
+  (if (nil? string)
+    nil
+    (let [match (re-matches #"\d+" string)]
+      (if (nil? match)
+        nil
+        (Integer/parseInt match)))))
+
+(defn float-or-nil
+  " Returns the parameter as a float if the parameter is string containing an unsigned integer or float, else nil. "
+  [string]
+  (if (nil? string)
+    nil
+    (let [match (re-matches #"[0-9]*\.?[0-9]+" string)]
+      (if (nil? match)
+        nil
+        (Float/parseFloat match)))))
+
+(defn parse-query-params
+  " Parses the query parameters when data generation is requested. Accepts only positive values and returns default values if the query parameters are incorrect. "
+  ;todo: add error message to response
+  [query-params]
+  (let [sat-count-default 20
+        min-alt-default 300.0
+        max-alt-default 700.0
+        planet-radius-default 6371.0
+
+        sat-cnt (integer-or-nil (:satelliteCount query-params))
+        min-alt (float-or-nil (:minAltitude query-params))
+        max-alt (float-or-nil (:maxAltitude query-params))
+        pla-rad (float-or-nil (:planetRadius query-params))
+
+        sat-count (or sat-cnt sat-count-default)
+        min-altitude (if (and min-alt max-alt (> max-alt min-alt))
+                       min-alt
+                       min-alt-default)
+        max-altitude (if (and min-alt max-alt (> max-alt min-alt))
+                       max-alt
+                       max-alt-default)
+        planet-radius (or pla-rad planet-radius-default)]
+      [sat-count min-altitude max-altitude planet-radius]))
+
+
+; ----------------
+; Views for routes
+; ----------------
+
+(defn home-page []
+  (layout/render "home.html"))
+
 (defn app-page []
   (layout/render "graphics_content.html"))
 
-(def EARTH-RADIUS 6371.0)
-
 (defn generate-json [query]
-  (pprint/pprint query)
-  (let [sat-count (if-let [sat-count-str (-> query :params :satelliteCount)]
-                    (Integer/parseInt sat-count-str)
-                    20)
-        data (parser/generate-data sat-count EARTH-RADIUS)
+  " Generates random satellite position data and returns it serialized to JSON. "
+  (let [data (parser/generate-data (parse-query-params (:params query)))
         sat-graph (core/sat-graph-with-endpoints data)
         nodes (core/graph-nodes sat-graph)
         all-edges (core/graph-edges sat-graph)
@@ -27,19 +79,25 @@
         edges-with-solution (core/apply-solution-path edges solution)
         json-data {:nodes nodes
                    :edges edges-with-solution}]
-    (if (contains? (:headers query) "x-requested-with")
+    (if (contains? query :view-json)
+      (layout/render "generator.html" json-data)
       (let [json-response {:status 200
                            :headers {"Content-Type" "application/json"}
                            :body (json/generate-string json-data)}]
-        json-response)
-      (layout/render "generate.html" json-data))))
+        json-response))))
+
+
+(defn view-json [query]
+  (generate-json (assoc query :view-json true)))
 
 (defn about-page []
   (layout/render "about.html"))
 
 
 (defroutes home-routes
-  (GET "/" [] (app-page))
-  (GET "/generate" [] #(generate-json %))
+  (GET "/" [] (home-page))
+  (GET "/app" [] (app-page))
+  (GET "/generator.json" [] #(generate-json %))
+  (GET "/generator" [] #(view-json %))
   (GET "/about" [] (about-page)))
 

@@ -1,20 +1,53 @@
-/* override bootstrap navbar styling */
-
+/* Override bootstrap navbar styling. */
 .navbar {
   margin-bottom: 0; /* remove space between canvas and navbar */
   border-radius: 0; /* make navbar corners straight */
 }
 
+/* Destroy all happiness and joy. */
 body {
   background-color: #333;
 }
 
-.generate-info p, h4, code, td, th {
+
+body#home-body {
+  background-image: url("../img/earth-space.jpg");
+}
+
+/* Make text pages clean by using one centered column
+ * with text justified evenly into the edges. */
+
+.text-page-container {
+  position: relative;
+  top: 40px;
+  width: 80%;
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+.text-page-container p, h2, h4, code, td, th, dt, dd, li {
   color: #ccc;
 }
-.generate-info code, th {
+
+.text-page-container p {
+  text-align: justify;
+}
+
+.text-page-container code, th {
   background-color: #333;
 }
-.generate-info td {
+
+.text-page-container td {
   background-color: #444;
+}
+
+
+.home-page-container {
+  position: absolute;
+  left: 10%;
+  top: 40%;
+}
+
+.home-page-container .jumbotron {
+  background-color: transparent;
 }

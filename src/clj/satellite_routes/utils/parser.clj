@@ -41,9 +41,10 @@
 
 
 (defn generate-data
-  " Generates satellite position data from 0 to n-1 and a random route with a start and end position. Uses the parse-generated-data function to convert all generated geographic coordinates into cartesian coordinates. "
-  [n earth-radius] 
-  (let [rand-geo-loc #(- (rand 360) 180)]
+  " Generates satellite position data from 0 to n-1 and a random route with a start and end position. Uses the parse-generated-data function to convert all generated geographic coordinates into cartesian coordinates. Expects one parameter, which is a vector with 4 values. "
+  [[n min-alt max-alt earth-radius]]
+  (let [rand-geo-loc #(- (rand 360) 180)
+        delta-min-max-alt (- max-alt min-alt)]
     (loop [sat-n 0
            hashmap {:satellites []}]
       (if (>= sat-n n)
@@ -56,7 +57,7 @@
           (parse-generated-data generated-data earth-radius))
         (let [lat (rand-geo-loc)
               long (rand-geo-loc)
-              alt (+ (rand 400) 300)
+              alt (+ (rand delta-min-max-alt) min-alt)
               sat-vec (:satellites hashmap)]
           (recur (inc sat-n)
                  (assoc hashmap :satellites

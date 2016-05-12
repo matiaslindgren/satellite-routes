@@ -69,7 +69,14 @@ function init() {
   container.appendChild(renderer.domElement);
 
 
-  loadEarth("img/earthHD.jpg");
+  var planetParameters = {
+    name: "EARTH",
+    radius: EARTH_RADIUS,
+    mainTexture: "img/NASA_earth_july.jpg",
+    bumpMap: "img/NASA_earth_bump.png"
+  }
+
+  loadPlanet(planetParameters);
   loadControls();
   loadEquator();
   loadPrimeMeridian();
@@ -86,10 +93,15 @@ function loadControls() {
 
   var SatelliteConstellation = function() {
     this.satelliteCount = 20;
+    this.satMinAltitude = 300.0;
+    this.satMaxAltitude = 700.0;
     this.generateSatellites = function() {
       $.getJSON(
-        "generate", 
-        { satelliteCount: this.satelliteCount },
+        "generator.json", 
+        { satelliteCount: this.satelliteCount,
+          minAltitude: this.satMinAltitude,
+          maxAltitude: this.satMaxAltitude,
+          planetRadius: EARTH_RADIUS },
         function(response) { loadSatellites(response); }
       );
     }
@@ -119,13 +131,13 @@ function loadControls() {
   satFolder.add(satellitesGUI, "showSolutionPath")
     .onChange(toggleSolutionPath);
   
-  var earthFolder = gui.addFolder("Earth");
+  var planetFolder = gui.addFolder("Planet");
 
-  earthFolder.add(satellitesGUI, "showAxes")
+  planetFolder.add(satellitesGUI, "showAxes")
     .onChange(toggleCoordinateAxes);
-  earthFolder.add(satellitesGUI, "showEquator")
+  planetFolder.add(satellitesGUI, "showEquator")
     .onChange(toggleEquator);
-  earthFolder.add(satellitesGUI, "showPrimeMeridian")
+  planetFolder.add(satellitesGUI, "showPrimeMeridian")
     .onChange(togglePrimeMeridian);
 
 
@@ -221,30 +233,57 @@ function loadSatellites(data) {
   console.log("satellites loaded");
 }
 
-var earth;
-function loadEarth(texturePath) {
+var planet;
+function loadPlanet(planetData) {
 
-  // EARTH AS A SPHERE
-  var earth_geometry = new THREE.SphereGeometry(EARTH_RADIUS, 32, 32);
-  var earth_material = new THREE.MeshPhongMaterial({
-    map: new THREE.TextureLoader().load(texturePath)
-  });
-  earth = new THREE.Mesh(earth_geometry, earth_material);
+  var planetRadius = 6000;
+  if (planetData.radius) {
+    planetRadius = planetData.radius;
+  }
 
-  // tweaks to get the axes, equator and the prime meridian correct
-  var half_PI = 0.5*Math.PI;
-  earth.rotateY(-1.525);
-  earth.rotateY(half_PI);
-  earth.rotateX(half_PI);
+  var planet_geometry = new THREE.SphereGeometry(planetRadius, 32, 32);
+
+  var planet_material = null;
+  var texture_loader = new THREE.TextureLoader();
+
+  if (planetData.mainTexture) {
+    planet_material = new THREE.MeshPhongMaterial({
+      map: texture_loader.load(planetData.mainTexture)
+    });
+  } else {
+    console.log("no texture for planet found, rendering with MeshPhongMaterial.");
+    planet_material = new THREE.MeshPhongMaterial();
+  }
+
+  if (planetData.bumpMap) {
+    planet_material.bumpMap = texture_loader.load(planetData.bumpMap);
+    planet_material.bumpScale = planetRadius*0.02;
+  }
+  if (planetData.specularMap) {
+    planet_material.specularMap = texture_loader.load(planetData.specularMap);
+  }
+  if (planetData.normalMap) {
+    planet_material.normalMap = texture_loader.load(planetData.normalMap);
+  }
+
+  planet = new THREE.Mesh(planet_geometry, planet_material);
+
+  if (planetData.name == "EARTH") {
+    // earth tweaks to get the axes, equator and the prime meridian correct
+    var half_PI = 0.5*Math.PI;
+    planet.rotateY(-1.525);
+    planet.rotateY(half_PI);
+    planet.rotateX(half_PI);
+  }
 
   camera.up = new THREE.Vector3(0, 0, 1);
-  camera.position.x = 1.5*EARTH_RADIUS;
-  camera.position.y = 1.5*EARTH_RADIUS;
+  camera.position.x = 1.5*planetRadius;
+  camera.position.y = 1.5*planetRadius;
   camera.position.z = 0;
 
-  scene.add(earth);
+  scene.add(planet);
 
-  console.log("earth loaded");
+  console.log(planetData.name + " loaded");
 }
 
 

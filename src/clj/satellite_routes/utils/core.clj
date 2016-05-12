@@ -69,9 +69,9 @@
 
 
 (defn graph-nodes
-  " Returns the nodes of a satellite graph. "
+  " Returns the nodes of a satellite graph as a sequence. "
   [sat-graph]
-  (graph/nodes sat-graph))
+  (seq (graph/nodes sat-graph)))
 
 
 (defn satellite-graph
