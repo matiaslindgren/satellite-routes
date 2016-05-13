@@ -1,5 +1,7 @@
 # satellite-routes [![Build Status](https://travis-ci.org/matiaslindgren/satellite-routes.svg?branch=master)](https://travis-ci.org/matiaslindgren/satellite-routes)
 
+Currently deployed to [Heroku](http://satellite-thing.herokuapp.com/)
+
 generated using Luminus version "2.9.10.48"
 
 ## TODO
