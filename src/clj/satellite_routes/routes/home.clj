@@ -66,7 +66,6 @@
   (layout/render "home.html"))
 
 (defn app-page [query]
-  (pprint/pprint query)
   (if (= (:query-string query) "high-res")
     (layout/render "graphics_content.html" {:highResTextures true})
     (layout/render "graphics_content.html" {:highResTextures false})))
