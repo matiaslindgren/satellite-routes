@@ -1,4 +1,4 @@
-# satellite-routes
+# satellite-routes [![Build Status](https://travis-ci.org/matiaslindgren/satellite-routes.svg?branch=master)](https://travis-ci.org/matiaslindgren/satellite-routes)
 
 generated using Luminus version "2.9.10.48"
 
