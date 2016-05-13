@@ -6,10 +6,10 @@
             [satellite-routes.utils.algorithm :as alg]))
 
 
-(def EARTH-RADIUS 6371.0)
+(def EARTH-RADIUS 6371.0) ;todo, make this a parameter for all functions
 
 (defn sat-graph-with-edges
-  " Takes as parameter the graph of satellite nodes with no edges and adds edges between every node. "
+  " Takes as parameter the graph of satellite nodes with no edges and adds edges between every node that have unobstructed visibility. "
   [sat-graph]
   (if (not (empty? (graph/edges sat-graph)))
     (throw (Exception. "Satellite graph already has edges!"))
@@ -55,7 +55,7 @@
 
 
 (defn graph-edges
-  " Returns the weighted unique edges of an undirected satellite graph. "
+  " Returns the weighted edges of an undirected satellite graph. "
   [sat-graph]
   (loop [edges (graph/edges sat-graph)
          with-weights []]
@@ -143,28 +143,4 @@
                                solution-path)})]
         (recur (rest edges)
                (conj processed-edges new-edge))))))
-
-
-  
-
-; -----
-; utils, could be moved to tests
-; -----
-
-(defn positions-valid?
-  " Checks that no satellite is inside earth. "
-  [sat-vector]
-  (loop [satellites sat-vector]
-    (if (empty? satellites)
-      true
-      (let [[x y z] (:pos (first satellites))
-            xx (* x x)
-            yy (* y y)
-            zz (* z z)
-            sq-sum (+ xx yy zz)
-            sat-dist (Math/sqrt sq-sum)]
-        (if (< sat-dist EARTH-RADIUS)
-          false
-          (recur (rest satellites)))))))
-
 

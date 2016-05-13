@@ -8,9 +8,9 @@
 
 (defn satellite-in-cartesian
   " Converts the position of the satellite given as parameter from [latitude longitude altitude] into [x y z]. "
-  [satellite earth-radius]
+  [satellite planet-radius]
   (let [[lat long alt] (:geo-pos satellite)
-        dist-from-origin (+ alt earth-radius)
+        dist-from-origin (+ alt planet-radius)
         cartesian-pos (alg/as-cartesian dist-from-origin
                                         lat
                                         long)]
@@ -20,25 +20,25 @@
 
 (defn parse-generated-data
   " Converts all geographic coordinates in raw-map into cartesian coordinates. "
-  [raw-map earth-radius]
+  [raw-map planet-radius]
   (let [geo-satellites (:satellites raw-map)
         [start-lat start-long
          end-lat end-long] (:route raw-map)
-         earth-surface (+ earth-radius 0.1)
+         earth-surface (+ planet-radius 0.1)
         route-start (alg/as-cartesian earth-surface
                                       start-lat
                                       start-long)
         route-end (alg/as-cartesian earth-surface
                                     end-lat
                                     end-long)]
-    {:satellites (vec (map #(satellite-in-cartesian % earth-radius) geo-satellites))
+    {:satellites (vec (map #(satellite-in-cartesian % planet-radius) geo-satellites))
      :route {:start route-start
              :end route-end}}))
 
 
 (defn generate-data
   " Generates satellite position data from 0 to n-1 and a random route with a start and end position. Uses the parse-generated-data function to convert all generated geographic coordinates into cartesian coordinates. Expects one parameter, which is a vector with 4 values. "
-  [[n min-alt max-alt earth-radius]]
+  [[n min-alt max-alt planet-radius]]
   (let [rand-longitude #(- (rand 360) 180)
         rand-latitude #(- (rand 180) 90)
         delta-min-max-alt (- max-alt min-alt)]
@@ -51,7 +51,7 @@
               end-long (rand-longitude)
               route (conj [] start-lat start-long end-lat end-long)
               generated-data (assoc hashmap :route route)]
-          (parse-generated-data generated-data earth-radius))
+          (parse-generated-data generated-data planet-radius))
         (let [lat (rand-latitude)
               long (rand-longitude)
               alt (+ (rand delta-min-max-alt) min-alt)
