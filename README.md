@@ -10,6 +10,7 @@ Currently deployed to [Heroku](http://satellite-thing.herokuapp.com/)
 ## TODO
 
 - Strip all unneeded dependencies and redundancies from the project
+- The satellite graph should not have duplicate edges at any point
 - Implement sensible random parameter generators for tests
 - Make tests for JavaScript?
 - Generate documentation with codox and host on github.io
