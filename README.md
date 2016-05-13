@@ -10,7 +10,8 @@ Currently deployed to [Heroku](http://satellite-thing.herokuapp.com/)
 ## TODO
 
 - Strip all unneeded dependencies and redundancies from the project
-- The satellite graph should not have duplicate edges at any point
+- The satellite graph is undirected and thus all duplicate edges are redundant, these could be removed completely
+- Implement some kind of loading message on the /app page; the textures are quite large and loading takes currently a lot of time
 - The random generation of satellite positions seems to create clusters on the poles, do something about this
 - Implement sensible random parameter generators for tests
 - Make tests for JavaScript?
