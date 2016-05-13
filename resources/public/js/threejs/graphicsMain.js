@@ -68,12 +68,24 @@ function init() {
   var container = document.getElementById("graphics-container");
   container.appendChild(renderer.domElement);
 
+  var mainTexturePath;
+  var bumpMapPath;
+
+  // The mobileTextures boolean variable is defined in graphics_content.html
+  // template and gets its value depending on the choice in the dropdown menu
+  if (!mobileTextures) {
+    mainTexturePath = "img/NASA_earth_july_HIGHRES_2.png";
+    bumpMapPath = "img/NASA_earth_bump_HIGHRES_2.png";
+  } else {
+    mainTexturePath = "img/NASA_earth_july_LOWRES.png";
+    bumpMapPath = "img/NASA_earth_bump_LOWRES.png";
+  }
 
   var planetParameters = {
     name: "EARTH",
     radius: EARTH_RADIUS,
-    mainTexture: "img/NASA_earth_july.jpg",
-    bumpMap: "img/NASA_earth_bump.png"
+    mainTexture: mainTexturePath,
+    bumpMap: bumpMapPath
   }
 
   loadPlanet(planetParameters);
@@ -112,6 +124,7 @@ function loadControls() {
     this.showAxes = false;
     this.showEquator = false;
     this.showPrimeMeridian = false;
+    this.highQualityTextures = !mobileTextures;
   };
 
   satellitesGUI = new SatelliteConstellation();
@@ -139,6 +152,8 @@ function loadControls() {
     .onChange(toggleEquator);
   planetFolder.add(satellitesGUI, "showPrimeMeridian")
     .onChange(togglePrimeMeridian);
+  planetFolder.add(satellitesGUI, "highQualityTextures")
+    .onChange(console.log("GUI texture change not implemented, please use the dropdown"));
 
 
   console.log("controls loaded");

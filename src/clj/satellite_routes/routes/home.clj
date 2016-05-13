@@ -65,8 +65,12 @@
 (defn home-page []
   (layout/render "home.html"))
 
-(defn app-page []
-  (layout/render "graphics_content.html"))
+(defn app-page [query]
+  (pprint/pprint query)
+  (if (= (:query-string query) "high-res")
+    (layout/render "graphics_content.html" {:highResTextures true})
+    (layout/render "graphics_content.html" {:highResTextures false})))
+
 
 (defn generate-json [query]
   " Generates random satellite position data and returns it serialized to JSON. "
@@ -96,7 +100,7 @@
 
 (defroutes home-routes
   (GET "/" [] (home-page))
-  (GET "/app" [] (app-page))
+  (GET "/app" [] #(app-page %))
   (GET "/generator.json" [] #(generate-json %))
   (GET "/generator" [] #(view-json %))
   (GET "/about" [] (about-page)))

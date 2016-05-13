@@ -24,10 +24,18 @@
 {% endblock %}
 
 {% block main_container %}
-<!-- The threejs canvas will be appended here -->
 <div id="graphics-container">
   <!-- A dat GUI instance will be appended here -->
   <div id="gui-container"></div> 
-  <script src="js/threejs/graphicsMain.js"></script>
+
+    {% if highResTextures %}
+      <script>var mobileTextures = false;</script>
+    {% else %}
+      <script>var mobileTextures = true;</script>
+    {% endif %}
+
+    <!-- The threejs canvas will be appended here -->
+    <script src="js/threejs/graphicsMain.js"></script>
+  </div>
 </div>
 {% endblock main_container %}
