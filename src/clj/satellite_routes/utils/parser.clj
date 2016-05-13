@@ -1,13 +1,9 @@
 (ns satellite-routes.utils.parser
   (:require [loom.graph :as graph]
             [loom.alg :as graph-alg]
-            [clojure-csv.core :as csv]
             [clojure.string :as string]
             [clojure.pprint :as pprint]
             [satellite-routes.utils.algorithm :as alg]))
-
-(defn data-path [n]
-  (str "/home/matias/koodi/reaktor-orbital-challenge/resources/data" n))
 
 
 (defn satellite-in-cartesian
@@ -43,20 +39,21 @@
 (defn generate-data
   " Generates satellite position data from 0 to n-1 and a random route with a start and end position. Uses the parse-generated-data function to convert all generated geographic coordinates into cartesian coordinates. Expects one parameter, which is a vector with 4 values. "
   [[n min-alt max-alt earth-radius]]
-  (let [rand-geo-loc #(- (rand 360) 180)
+  (let [rand-longitude #(- (rand 360) 180)
+        rand-latitude #(- (rand 180) 90)
         delta-min-max-alt (- max-alt min-alt)]
     (loop [sat-n 0
            hashmap {:satellites []}]
       (if (>= sat-n n)
-        (let [start-lat (rand-geo-loc)
-              start-long (rand-geo-loc)
-              end-lat (rand-geo-loc)
-              end-long (rand-geo-loc)
+        (let [start-lat (rand-latitude)
+              start-long (rand-longitude)
+              end-lat (rand-latitude)
+              end-long (rand-longitude)
               route (conj [] start-lat start-long end-lat end-long)
               generated-data (assoc hashmap :route route)]
           (parse-generated-data generated-data earth-radius))
-        (let [lat (rand-geo-loc)
-              long (rand-geo-loc)
+        (let [lat (rand-latitude)
+              long (rand-longitude)
               alt (+ (rand delta-min-max-alt) min-alt)
               sat-vec (:satellites hashmap)]
           (recur (inc sat-n)

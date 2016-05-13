@@ -1,27 +1,22 @@
 (ns satellite-routes.utils.algorithm)
 
-(def rad-per-deg (/ Math/PI 180.0))
-
-(defn radians
-  " Return the radian value of the degrees given as parameter "
-  [degrees]
-  (* rad-per-deg degrees))
 
 (defn truncate-zero
-  " If the absolute value of the parameter x is less than 1e-12, return 0.0, else return the parameter "
+  " If the absolute value of the parameter x is less than 1e-9, return 0.0, else return the parameter "
   [x]
-  (if (< (Math/abs x) 1E-12)
+  (if (< (Math/abs x) 1E-9)
     0.0
     x))
 
 (defn as-cartesian
   " Return a vector [x y z] from the geographic coordinates [r latitude longitude] given as parameters "
   [r latitude longitude]
-  (let [phi (radians latitude)
-        theta (radians longitude)]
-    [(* r (Math/cos theta) (Math/cos phi))
-     (* r (Math/sin theta) (Math/cos phi))
-     (* r (Math/sin phi))]))
+  (let [phi (Math/toRadians latitude)
+        theta (Math/toRadians longitude)]
+    (vec (map truncate-zero
+              [(* r (Math/cos theta) (Math/cos phi))
+               (* r (Math/sin theta) (Math/cos phi))
+               (* r (Math/sin phi))]))))
 
 (defn euclidian-distance
   [[x1 y1 z1]
