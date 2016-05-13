@@ -15,7 +15,8 @@ Currently deployed to [Heroku](http://satellite-thing.herokuapp.com/)
 - The random generation of satellite positions seems to create clusters on the poles, do something about this
 - Implement sensible random parameter generators for tests
 - Make tests for JavaScript?
-- Generate documentation with codox and host on github.io
+- Generate documentation and host on github.io
+- Bootstrap navbar resizes awkwardly on Android, maybe try to fix this
 
 ## References
 
