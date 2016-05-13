@@ -18,9 +18,9 @@ To start a web server for the application, run:
 
 ## References
 
-Home page background: https://www.pexels.com/photo/earth-space-cosmos-5439/
-Earth sphere texture: http://planetpixelemporium.com/earth.html
-http://visibleearth.nasa.gov/
+Home page background: [pexels](https://www.pexels.com/photo/earth-space-cosmos-5439/)
+Earth sphere texture: [NASA](http://visibleearth.nasa.gov/)
+
 ## License
 
-Copyright © 2016 FIXME
+Copyright © 2016 Matias Lindgren, MIT License
