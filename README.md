@@ -9,6 +9,8 @@ Currently deployed to [Heroku](http://satellite-thing.herokuapp.com/)
 
 ## TODO
 
+- Major refactoring needed in the backend
+- Maybe implement a js sniffer for checking if user has webGL is enabled?
 - Strip all unneeded dependencies and redundancies from the project
 - The satellite graph is undirected and thus all duplicate edges are redundant, these could be removed completely
 - Implement some kind of loading message on the /app page; the textures are quite large and loading takes currently a lot of time

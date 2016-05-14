@@ -36,9 +36,9 @@
              :end route-end}}))
 
 
-(defn generate-data
-  " Generates satellite position data from 0 to n-1 and a random route with a start and end position. Uses the parse-generated-data function to convert all generated geographic coordinates into cartesian coordinates. Expects one parameter, which is a vector with 4 values. "
-  [[n min-alt max-alt planet-radius]]
+(defn generate-random-data
+  " Generates satellite position data from 0 to n-1 and a random route with a start and end position. Uses the parse-generated-data function to convert all generated geographic coordinates into cartesian coordinates. "
+  [n min-alt max-alt planet-radius]
   (let [rand-longitude #(- (rand 360) 180)
         rand-latitude #(- (rand 180) 90)
         delta-min-max-alt (- max-alt min-alt)]
@@ -60,4 +60,37 @@
                  (assoc hashmap :satellites
                    (conj sat-vec {:name (str "SAT" sat-n)
                                   :geo-pos [lat long alt]}))))))))
+
+(defn valid-polyhedron?
+  [polyhedron-name]
+  (let [polyhedrons #{"tetrahedron"
+                      "cube"
+                      "octahedron"
+                      "icosahedron"
+                      "dodecahedron"}]
+    (contains? polyhedrons polyhedron-name)))
+
+(defn generate-polyhedron-data
+  " Generates satellite positions at the vertices of a polyhedron. "
+  ;todo: remove start and end positions from everywhere and make them parameters.
+  [polyhedron-name min-alt planet-radius]
+  (println "generate from cartesian:")
+  (println polyhedron-name min-alt planet-radius)
+    (loop [polyh-vertices (alg/polyhedron-coordinates
+                           (+ min-alt planet-radius)
+                           polyhedron-name)
+           sat-n 0
+           hashmap {:satellites []}]
+      (println "got polyh vertex:" (first polyh-vertices))
+      (if (empty? polyh-vertices)
+        (let [start (alg/as-cartesian 6371 -45 -45)
+              end (alg/as-cartesian 6371 45 45)]
+          (assoc hashmap :route {:start start :end end}))
+        (let [sat-vec (:satellites hashmap)]
+          (recur (rest polyh-vertices)
+                 (inc sat-n)
+                 (assoc hashmap :satellites
+                   (conj sat-vec {:name (str "SAT" sat-n)
+                                  :pos (first polyh-vertices)})))))))
+
 

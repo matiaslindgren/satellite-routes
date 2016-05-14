@@ -103,40 +103,105 @@ var satellitesGUI;
 
 function loadControls() {
 
-  var SatelliteConstellation = function() {
+  var SatelliteSystem = function() {
     this.satelliteCount = 20;
-    this.satMinAltitude = 300.0;
-    this.satMaxAltitude = 700.0;
+    this.minAltitude = 300.0;
+    this.maxAltitude = 700.0;
+
     this.generateSatellites = function() {
       $.getJSON(
         "generator.json", 
         { satelliteCount: this.satelliteCount,
-          minAltitude: this.satMinAltitude,
-          maxAltitude: this.satMaxAltitude,
-          planetRadius: EARTH_RADIUS },
+          minAltitude: this.minAltitude,
+          maxAltitude: this.maxAltitude,
+          planetRadius: this.planetRadius },
         function(response) { loadSatellites(response); }
       );
     }
+
+    this.altitude = 0.0;
+
+    this.tetrahedron = function() {
+      $.getJSON(
+        "generator.json", 
+        { polyhedron: "tetrahedron",
+          minAltitude: this.altitude,
+          planetRadius: this.planetRadius },
+        function(response) { loadSatellites(response); }
+      );
+    };
+    this.cube = function() {
+      $.getJSON(
+        "generator.json", 
+        { polyhedron: "cube",
+          minAltitude: this.altitude,
+          planetRadius: this.planetRadius },
+        function(response) { loadSatellites(response); }
+      );
+    };
+    this.octahedron = function() {
+      $.getJSON(
+        "generator.json", 
+        { polyhedron: "octahedron",
+          minAltitude: this.altitude,
+          planetRadius: this.planetRadius },
+        function(response) { loadSatellites(response); }
+      );
+    };
+    this.dodecahedron = function() {
+      $.getJSON(
+        "generator.json", 
+        { polyhedron: "dodecahedron",
+          minAltitude: this.altitude,
+          planetRadius: this.planetRadius },
+        function(response) { loadSatellites(response); }
+      );
+    };
+    this.icosahedron = function() {
+      $.getJSON(
+        "generator.json", 
+        { polyhedron: "icosahedron",
+          minAltitude: this.altitude,
+          planetRadius: this.planetRadius },
+        function(response) { loadSatellites(response); }
+      );
+    };
+
+
     this.showSatellites = true;
     this.showConnections = true;
     this.showSolutionPath = true;
 
+    this.planetRadius = EARTH_RADIUS;
     this.showAxes = false;
     this.showEquator = false;
     this.showPrimeMeridian = false;
     this.highQualityTextures = !mobileTextures;
   };
 
-  satellitesGUI = new SatelliteConstellation();
+  satellitesGUI = new SatelliteSystem();
 
   gui = new dat.GUI({ autoPlace: false, width: 300 });
   $("#gui-container").append(gui.domElement);
-  //$("#gui-container").draggable();
+  //$("#gui-container").draggable(); //renders the gui unusable, 
+  //needs a drag area
 
   var satFolder = gui.addFolder("Satellites");
+  var randSatFl = satFolder.addFolder("Random generation");
+  var constellationFl = satFolder.addFolder("Constellations");
 
-  satFolder.add(satellitesGUI, "satelliteCount", 0, 100).step(1);
-  satFolder.add(satellitesGUI, "generateSatellites");
+  randSatFl.add(satellitesGUI, "satelliteCount", 0, 100).step(1);
+  randSatFl.add(satellitesGUI, "minAltitude", 0, 9999).step(1);
+  randSatFl.add(satellitesGUI, "maxAltitude", 1, 10000).step(1);
+  randSatFl.add(satellitesGUI, "generateSatellites");
+
+  constellationFl.add(satellitesGUI, "altitude", 0, 10000).step(1);
+  constellationFl.add(satellitesGUI, "tetrahedron");
+  constellationFl.add(satellitesGUI, "cube");
+  constellationFl.add(satellitesGUI, "octahedron");
+  constellationFl.add(satellitesGUI, "dodecahedron");
+  constellationFl.add(satellitesGUI, "icosahedron");
+
   satFolder.add(satellitesGUI, "showSatellites")
     .onChange(toggleSatellites);
   satFolder.add(satellitesGUI, "showConnections")
@@ -146,6 +211,7 @@ function loadControls() {
   
   var planetFolder = gui.addFolder("Planet");
 
+  //planetFolder.add(satellitesGUI, "planetRadius", 100, 20000).step(1);
   planetFolder.add(satellitesGUI, "showAxes")
     .onChange(toggleCoordinateAxes);
   planetFolder.add(satellitesGUI, "showEquator")

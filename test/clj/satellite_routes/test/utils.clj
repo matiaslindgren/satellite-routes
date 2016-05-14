@@ -38,8 +38,8 @@
   (let [rand-radius (+ (rand 1000000) 10)
         min-alt (+ (rand 1000) 1)
         max-alt (+ (rand 1000) (+ 1 min-alt))
-        sat-seq (:satellites (parser/generate-data 
-                               [n min-alt max-alt rand-radius]))]
+        sat-seq (:satellites (parser/generate-random-data 
+                               n min-alt max-alt rand-radius))]
     [sat-seq rand-radius]))
 
 (defn positions-valid?

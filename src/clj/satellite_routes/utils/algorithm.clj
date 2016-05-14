@@ -1,6 +1,72 @@
 (ns satellite-routes.utils.algorithm)
 
 
+(defn polyhedron-coordinates
+  " Returns a map of cartesian coordinates for polyhedron vertices on the
+    surface of a sphere of radius R. If the polyhedron-name is not found, return nil. "
+  ;todo: add rotation parameters
+  ;also, some polyhedrons have 2 orientation sets
+  [R polyhedron-name]
+  (let [gr (/ (+ 1 (Math/sqrt 5)) 2) ;golden ratio
+        a (case polyhedron-name 
+            ;heurestic inspired by Wikipedia to find a scaling factor for placing 
+            ;polyhedron vertices on the surface of the sphere
+            "tetrahedron" (/ R (Math/sqrt 3))
+            "cube" (/ R (Math/sqrt 3))
+            "octahedron" R
+            "dodecahedron" (/ R (Math/sqrt 3))
+            "icosahedron" (/ R (* gr (* 2 (Math/sin (/ Math/PI 5))))))
+        -a (- a)
+        gr-inv (/ gr)
+        b (* a gr)
+        -b (- b)
+        c (/ a gr)
+        -c (- c)]
+    (case polyhedron-name
+      "tetrahedron" (for [x [-a a] y [-a a] z [-a a]
+                          :when (or (= a x y z)
+                                    (>= x 0 y z)
+                                    (>= y 0 x z)
+                                    (>= z 0 x y))]
+                      [x y z])
+        "cube"        (for [x [-a a] y [-a a] z [-a a]]
+                        [x y z])
+        "octahedron"  (for [x [-a 0 a] y [-a 0 a] z [-a 0 a]
+                            :when (or (= 0 y z)
+                                      (= 0 x z)
+                                      (= 0 x y))]
+                        [x y z])
+
+        "icosahedron"  (for [x [-a -b 0 a b] 
+                             y [-a -b 0 a b]
+                             z [-a -b 0 a b]
+                             :when (or (and (= 0 x)
+                                            (= (Math/abs y) a)
+                                            (= (Math/abs z) b))
+                                       (and (= 0 y)
+                                            (= (Math/abs x) b)
+                                            (= (Math/abs z) a))
+                                       (and (= 0 z)
+                                            (= (Math/abs x) a)
+                                            (= (Math/abs y) b)))]
+                         [x y z])
+        "dodecahedron"  (concat (for [x [-a a] y [-a a] z [-a a]] [x y z])
+                                (for [x [-b -c 0 b c]
+                                      y [-b -c 0 b c]
+                                      z [-b -c 0 b c]
+                                      :when (or (and (= 0 x)
+                                                     (= (Math/abs y) c)
+                                                     (= (Math/abs z) b))
+                                                (and (= 0 y)
+                                                     (= (Math/abs x) b)
+                                                     (= (Math/abs z) c))
+                                                (and (= 0 z)
+                                                     (= (Math/abs x) c)
+                                                     (= (Math/abs y) b)))]
+                                  [x y z]))
+        "default" [])))
+
+
 (defn truncate-zero
   " If the absolute value of the parameter x is less than 1e-9, return 0.0, else return the parameter "
   [x]
