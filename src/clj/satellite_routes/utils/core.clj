@@ -8,29 +8,10 @@
 
 (def EARTH-RADIUS 6371.0) ;todo, make this a parameter for all functions
 
-(defn sat-graph-with-edges
-  " Takes as parameter the graph of satellite nodes with no edges and adds edges between every node that have unobstructed visibility. "
-  [sat-graph]
-  (if (not (empty? (graph/edges sat-graph)))
-    (throw (Exception. "Satellite graph already has edges!"))
-    (let [satellites (graph/nodes sat-graph)]
-      (reduce graph/add-edges 
-              sat-graph
-              (for [sat-a satellites
-                    sat-b satellites
-                    :let [distance (alg/unobstructed-distance
-                                     (:pos sat-a)
-                                     (:pos sat-b)
-                                     EARTH-RADIUS)]
-                    :when (and (> (compare (:name sat-a)
-                                           (:name sat-b))
-                                  0)
-                               (> distance 0))]
-                  [sat-a sat-b distance])))))
-
-
 (defn undirected-non-duplicate-edges
   " Returns all unique edges in sat-graph. "
+  ; why is this even here?
+  ; sat-graph-with-edges should not add duplicate edges?
   [all-edges]
   (loop [edges all-edges
          filtered-edges []
@@ -54,7 +35,7 @@
                         (set (conj (key-a look-up-table) name-b)))))))))
 
 
-(defn graph-edges
+(defn graph-weighted-edges
   " Returns the weighted edges of an undirected satellite graph. "
   [sat-graph]
   (loop [edges (graph/edges sat-graph)
@@ -74,8 +55,33 @@
   (seq (graph/nodes sat-graph)))
 
 
+(defn sat-graph-with-edges
+  " Takes as parameter an undirected, weighted graph of satellite nodes 
+    with no edges and adds edges between every node that have unobstructed 
+    visibility. "
+  [sat-graph]
+  (if (not (empty? (graph/edges sat-graph)))
+    (throw (Exception. "Satellite graph already has edges!"))
+    (let [satellites (graph/nodes sat-graph)]
+      (reduce graph/add-edges 
+              sat-graph
+              (for [sat-a satellites
+                    sat-b satellites
+                    :let [distance (alg/unobstructed-distance
+                                     (:pos sat-a)
+                                     (:pos sat-b)
+                                     EARTH-RADIUS)] ;remove EARTH-RADIUS, could be in sat-graph
+                    :when (and (> (compare (:name sat-a)
+                                           (:name sat-b))
+                                  0)
+                               (> distance 0))]
+                  [sat-a sat-b distance])))))
+
+
 (defn satellite-graph
-  " Takes as parameter a vector of satellites and creates a weighted graph containing these satellites as nodes. Calls the function that adds edges to the graph and returns a graph with all edges added. "
+  " Takes as parameter a vector of satellites and creates a weighted graph 
+    containing these satellites as nodes. 
+    Calls sat-graph-with-edges and returns a graph with all edges added. "
   [sat-vector]
   (loop [satellites sat-vector
          wgraph (graph/weighted-graph)]
@@ -86,21 +92,19 @@
                (graph/add-nodes wgraph sat))))))
 
 
-(defn sat-graph-with-endpoints
-  [parsed-data]
-  (let [satellites (:satellites parsed-data)
-        route (:route parsed-data)
-        start-pos (:start route)
-        end-pos (:end route)
-        start-node {:name "START"
-                    :pos start-pos}
+(defn satellite-graph-with-route
+  " Does the same thing as satellite-graph but adds two nodes with keys :name 
+    which maps to 'START' or 'END', and :pos which maps to 
+    (:start route) or (:end route). "
+  [satellite-vec route]
+  (let [start-node {:name "START"
+                    :pos (:start route)}
         end-node {:name "END"
-                  :pos end-pos}
-        sat-with-endpoints (conj satellites 
-                                 start-node 
-                                 end-node)
-        sat-graph (satellite-graph sat-with-endpoints)]
-    ;(pprint/pprint start-node ) (pprint/pprint end-node ) (pprint/pprint sat-graph)
+                  :pos (:end route)}
+        with-endpoints (conj satellite-vec 
+                             start-node 
+                             end-node)
+        sat-graph (satellite-graph with-endpoints)]
     sat-graph))
 
 

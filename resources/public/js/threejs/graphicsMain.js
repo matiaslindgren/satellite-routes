@@ -104,7 +104,7 @@ var satellitesGUI;
 function loadControls() {
 
   var SatelliteSystem = function() {
-    this.satelliteCount = 20;
+    this.satelliteCount = 5;
     this.minAltitude = 300.0;
     this.maxAltitude = 700.0;
 

@@ -32,9 +32,10 @@
         "cube"        (for [x [-a a] y [-a a] z [-a a]]
                         [x y z])
         "octahedron"  (for [x [-a 0 a] y [-a 0 a] z [-a 0 a]
-                            :when (or (= 0 y z)
-                                      (= 0 x z)
-                                      (= 0 x y))]
+                            :when (and (not= x y z 0)
+                                       (or (= 0 y z)
+                                           (= 0 x z)
+                                           (= 0 x y)))]
                         [x y z])
 
         "icosahedron"  (for [x [-a -b 0 a b] 

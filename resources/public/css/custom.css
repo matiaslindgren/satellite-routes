@@ -25,7 +25,7 @@ body#home-body {
   margin: 0 auto;
 }
 
-.text-page-container p, h2, h4, code, td, th, dt, dd, li {
+.text-page-container p, h2, h3, h4, h5, code, td, th, dt, dd, li {
   color: #ccc;
 }
 
