@@ -30,38 +30,84 @@
     (is (> 0 (alg/unobstructed-distance [0 2 0] [0 -2 0] 1)))
     (is (< 0 (alg/unobstructed-distance [2 2 2] [1.5 1.5 1.5] 1)))
     (is (< 0 (alg/unobstructed-distance [-2 -2 -2] [-1.5 -1.5 -1.5] 1)))
-    (is (< 0 (alg/unobstructed-distance [1.5 0 0] [0 1.5 0] 1)))))
+    (is (< 0 (alg/unobstructed-distance [1.5 0 0] [0 1.5 0] 1))))
 
-
-(defn random-satellite-data [n] " Generates a sequence of n satellites with random parameters.
-    Returns a vector with the sequence and the random radius used in the sequence. "
-  (let [rand-radius (+ (rand 1000000) 10)
-        min-alt (+ (rand 1000) 1)
-        max-alt (+ (rand 1000) (+ 1 min-alt))
-        sat-seq (:satellites (parser/generate-random-data 
-                               n min-alt max-alt rand-radius))]
-    [sat-seq rand-radius]))
+  (testing "polyhedron-coordinates"
+    " Test if correct amount of vertices is returned. "
+    (is (= 0 (count (alg/polyhedron-coordinates 2 "default"))))
+    (is (= 4 (count (alg/polyhedron-coordinates 2 "tetrahedron"))))
+    (is (= 6 (count (alg/polyhedron-coordinates 2 "octahedron"))))
+    (is (= 8 (count (alg/polyhedron-coordinates 2 "cube"))))
+    (is (= 12 (count (alg/polyhedron-coordinates 2 "icosahedron"))))
+    (is (= 20 (count (alg/polyhedron-coordinates 2 "dodecahedron"))))))
 
 (defn positions-valid?
-  " Checks that no satellite is inside a planet. "
-  [sat-vector planet-radius]
-  (loop [satellites sat-vector]
-    (if (empty? satellites)
+  " Checks that all positions in node-vector is within the given limits. "
+  [node-vector min-altitude max-altitude]
+  (loop [nodes node-vector]
+    (if (empty? nodes)
       true
-      (let [pos (:pos (first satellites))
+      (let [pos (:pos (first nodes))
             sq-sum (reduce + (map #(* % %) pos))
-            sat-dist (Math/sqrt sq-sum)]
-        (if (< sat-dist planet-radius)
+            node-dist (Math/sqrt sq-sum)]
+        (if (not (<= min-altitude node-dist max-altitude))
           false
-          (recur (rest satellites)))))))
+          (recur (rest nodes)))))))
 
 (deftest test-parser
-  (testing "generate-data-valid-positions"
-    " Test that no randomly placed satellite is inside a planet with a given radius. "
-    (let [random-data-sets (for [i (range 1 11)]
-                             (random-satellite-data 10))]
-      (is (reduce #(and %1 (apply positions-valid? %2)) random-data-sets)
-          "Satellites should not be inside planets."))))
+  (testing "integer-or-nil"
+    (is (nil? (parser/integer-or-nil "2a")))
+    (is (nil? (parser/integer-or-nil "-1")))
+    (is (nil? (parser/integer-or-nil "")))
+    (is (nil? (parser/integer-or-nil nil)))
+    (is (= 1 (parser/integer-or-nil "1")))
+    (let [x (rand-int 1000000)]
+      (is (= x (parser/integer-or-nil (str x))))))
+
+  (testing "float-or-nil"
+    (is (nil? (parser/float-or-nil "2.0a")))
+    (is (nil? (parser/float-or-nil "-1")))
+    (is (nil? (parser/float-or-nil "")))
+    (is (nil? (parser/float-or-nil nil)))
+    (let [close-enough? #(< (Math/abs (- %1 %2)) 1E-6)]
+      (is (close-enough? 0.6666 (parser/float-or-nil "0.6666")))))
+
+  (testing "parse-polyhedron-query"
+    " Test that all polyhedron vertexes are places at expected locations. "
+    (let [query-params {:planetRadius "1"
+                        :altitude "1"}
+          {min-alt :altitude
+           planet-r :planet-radius} (parser/parse-polyhedron-query query-params)]
+      (let [pos-data (parser/satellites-polyhedron
+                       "tetrahedron" min-alt planet-r)]
+        (is (positions-valid? pos-data 0.9 2.1)))
+      (let [pos-data (parser/satellites-polyhedron
+                       "cube" min-alt planet-r)]
+        (is (positions-valid? pos-data 0.9 2.1)))
+      (let [pos-data (parser/satellites-polyhedron
+                       "octahedron" min-alt planet-r)]
+        (is (positions-valid? pos-data 0.9 2.1)))
+      (let [pos-data (parser/satellites-polyhedron
+                       "icosahedron" min-alt planet-r)]
+        (is (positions-valid? pos-data 0.9 2.1)))
+      (let [pos-data (parser/satellites-polyhedron
+                       "dodecahedron" min-alt planet-r)]
+        (is (positions-valid? pos-data 0.9 2.1)))))
+
+  (testing "parse-randomization-query"
+    " Test that all randomly placed satellites are placed within expected
+    altitudes. "
+    (let [query-params {:satelliteCount "100"
+                        :minAltitude "1"
+                        :maxAltitude "2"
+                        :planetRadius "1"}
+          {sat-count :sat-count
+           min-alt :min-altitude
+           max-alt :max-altitude
+           pl-rad :planet-radius} (parser/parse-randomization-query query-params)]
+      (let [pos-data (parser/satellites-random
+                       sat-count min-alt max-alt pl-rad)]
+        (is (positions-valid? pos-data 0.9 3.1))))))
 
 (deftest test-core ;todo: implement a fancy random parameter generator for sat positions
   (testing "generate-satellite-graph"
@@ -73,7 +119,7 @@
           sat-graph (core/satellite-graph sat-seq)]
       (is (= (count (core/graph-nodes sat-graph)) (count sat-seq))
           "Wrong amount of nodes, expected 3.")
-      (let [graph-edges (core/graph-edges sat-graph)]
+      (let [graph-edges (core/graph-weighted-edges sat-graph)]
         (is (= (count graph-edges) 2)
             "Wrong amount of edges, expected 2.")
         (is (= (count (core/undirected-non-duplicate-edges
@@ -86,7 +132,7 @@
                                           :pos [-0.2 0.95 0.35]})
             sat-graph-with-endpoints (core/satellite-graph sat-seq-with-endpoints)
             solution-path (core/solve-route sat-graph-with-endpoints)
-            edges (core/graph-edges sat-graph-with-endpoints)
+            edges (core/graph-weighted-edges sat-graph-with-endpoints)
             with-solution-flags (core/apply-solution-path edges solution-path)
             is-in-solution? (fn [edge name1 name2]
                               (and (or (and (= (:name (first edge)) name1)

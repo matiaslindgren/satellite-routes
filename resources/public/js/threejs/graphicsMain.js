@@ -125,7 +125,7 @@ function loadControls() {
       $.getJSON(
         "generator.json", 
         { polyhedron: "tetrahedron",
-          minAltitude: this.altitude,
+          altitude: this.altitude,
           planetRadius: this.planetRadius },
         function(response) { loadSatellites(response); }
       );
@@ -134,7 +134,7 @@ function loadControls() {
       $.getJSON(
         "generator.json", 
         { polyhedron: "cube",
-          minAltitude: this.altitude,
+          altitude: this.altitude,
           planetRadius: this.planetRadius },
         function(response) { loadSatellites(response); }
       );
@@ -143,7 +143,7 @@ function loadControls() {
       $.getJSON(
         "generator.json", 
         { polyhedron: "octahedron",
-          minAltitude: this.altitude,
+          altitude: this.altitude,
           planetRadius: this.planetRadius },
         function(response) { loadSatellites(response); }
       );
@@ -152,7 +152,7 @@ function loadControls() {
       $.getJSON(
         "generator.json", 
         { polyhedron: "dodecahedron",
-          minAltitude: this.altitude,
+          altitude: this.altitude,
           planetRadius: this.planetRadius },
         function(response) { loadSatellites(response); }
       );
@@ -161,7 +161,7 @@ function loadControls() {
       $.getJSON(
         "generator.json", 
         { polyhedron: "icosahedron",
-          minAltitude: this.altitude,
+          altitude: this.altitude,
           planetRadius: this.planetRadius },
         function(response) { loadSatellites(response); }
       );

@@ -40,17 +40,17 @@
   ;todo: add error message to response
   [query-params]
   (let [planet-radius-default EARTH-RADIUS
-        min-alt-default 0.0
+        alt-default 0.0
 
         polyhedron (:polyhedron query-params)
         pla-rad (float-or-nil (:planetRadius query-params))
-        min-alt (float-or-nil (:minAltitude query-params))
+        alt (float-or-nil (:altitude query-params))
 
-        min-altitude (or min-alt min-alt-default)
+        altitude (or alt alt-default)
         planet-radius (or pla-rad planet-radius-default)]
     {:polyhedron polyhedron
      :planet-radius planet-radius
-     :min-altitude min-altitude}))
+     :altitude altitude}))
 
 
 (defn parse-randomization-query
@@ -137,8 +137,10 @@
   and returns a graph with satellites as nodes and their connections as
   edges. The edges include the shortest path from START to END."
   [raw-query-params]
-  ;the massive if + let construct is a bit clumsy, maybe make a 
+  ;The massive if + let construct is a bit clumsy, maybe make a 
   ;case switch somewhere that checks what sort of generation query is being sent.
+  ;Also, it would be polite to send an error message if the query parameters
+  ;were incorrect.
   (let [generated-data 
         (if (valid-polyhedron? (:polyhedron raw-query-params))
           (let [parsed-query (parse-polyhedron-query raw-query-params)

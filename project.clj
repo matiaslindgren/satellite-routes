@@ -40,7 +40,8 @@
 
   :main satellite-routes.core
 
-  :plugins [[lein-cprop "1.0.1"]]
+  :plugins [[cider/cider-nrepl "0.12.0"]
+            [lein-cprop "1.0.1"]]
   :target-path "target/%s/"
   :profiles
   {:uberjar {:omit-source true
