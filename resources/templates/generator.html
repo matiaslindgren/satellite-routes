@@ -109,10 +109,6 @@
     <br>
     <br>
 
-    {% if edges|empty? %}
-      <p>This graph has no edges.</p>
-    {% endif %}
-
     <table class="table">
       <thead>
         <tr>
@@ -138,7 +134,12 @@
       </tbody>
     </table>
 
+    {% if edges|empty? %}
+    <p><b>This graph has no edges.</b></p>
+    {% endif %}
+
     <br>
+
   </div>
 </div>
 {% endblock %}
