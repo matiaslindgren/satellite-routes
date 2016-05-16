@@ -11,4 +11,7 @@ profiles.clj
 .nrepl-port
 /log
 *.swp
+*.swo
 *.*~
+oldimg_gitignore/
+dump

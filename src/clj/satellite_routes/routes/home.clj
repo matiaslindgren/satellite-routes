@@ -1,14 +1,11 @@
 (ns satellite-routes.routes.home
   (:require [satellite-routes.layout :as layout]
             [compojure.core :refer [defroutes GET]]
-            [satellite-routes.utils.core :as core]
             [satellite-routes.utils.parser :as parser]
             [ring.util.http-response :as response]
             [clojure.pprint :as pprint]
             [clj-json.core :as json]
             [clojure.java.io :as io]))
-
-
 
 
 ; ----------------

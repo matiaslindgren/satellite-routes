@@ -146,7 +146,7 @@
           (let [parsed-query (parse-polyhedron-query raw-query-params)
                 from-polyhedron (satellites-polyhedron
                                   (:polyhedron parsed-query)
-                                  (:min-altitude parsed-query)
+                                  (:altitude parsed-query)
                                   (:planet-radius parsed-query))]
             from-polyhedron)
           (let [parsed-query (parse-randomization-query raw-query-params)

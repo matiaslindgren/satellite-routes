@@ -14,6 +14,22 @@ body#home-body {
   background-image: url("../img/earth-space.jpg");
 }
 
+/* no js warning styling from stackoverflow */
+#noscript-warning {
+    font-family: sans-serif;
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    text-align: center;
+    font-weight: bold;
+    font-size: 120%;
+    color: #FFF;
+    background-color: #AE0000;
+    padding: 5px 0 5px 0;
+}
+
 /* Make text pages clean by using one centered column
  * with text justified evenly into the edges. */
 

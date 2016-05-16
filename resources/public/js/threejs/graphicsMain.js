@@ -1,5 +1,24 @@
 "use strict";
 
+
+// Map with different planet radiuses, textures etc.
+var PLANET_PARAMETERS = {
+  earth: {
+    name: "EARTH",
+    radius: 6371.0,
+    textures_HIGHRES: {
+      mainTexture: "img/NASA_earth_july_HIGHRES.png",
+      bumpMap: "img/NASA_earth_bump_HIGHRES.png"
+    },
+    textures_LOWRES: {
+      mainTexture: "img/NASA_earth_july_LOWRES.png",
+      bumpMap: "img/NASA_earth_bump_LOWRES.png"
+    },
+    ambientLight: 0.4,
+    starLight: 1.0,
+  }
+};
+
 //all toggles could be merged into one toggle function taking an array as
 //parameter
 function toggleSatelliteConnections() {
@@ -68,32 +87,10 @@ function init() {
   var container = document.getElementById("graphics-container");
   container.appendChild(renderer.domElement);
 
-  var mainTexturePath;
-  var bumpMapPath;
 
-  // The mobileTextures boolean variable is defined in graphics_content.html
-  // template and gets its value depending on the choice in the dropdown menu
-  if (!mobileTextures) {
-    mainTexturePath = "img/NASA_earth_july_HIGHRES_2.png";
-    bumpMapPath = "img/NASA_earth_bump_HIGHRES_2.png";
-  } else {
-    mainTexturePath = "img/NASA_earth_july_LOWRES.png";
-    bumpMapPath = "img/NASA_earth_bump_LOWRES.png";
-  }
-
-  var planetParameters = {
-    name: "EARTH",
-    radius: EARTH_RADIUS,
-    mainTexture: mainTexturePath,
-    bumpMap: bumpMapPath
-  }
-
-  loadPlanet(planetParameters);
   loadControls();
-  loadEquator();
-  loadPrimeMeridian();
+  loadPlanet(PLANET_PARAMETERS.earth);
   loadCoordinateAxes();
-  loadLights();
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
 
@@ -167,16 +164,18 @@ function loadControls() {
       );
     };
 
+    //this.redraw = function() {
+     // $.getJSON(
+
 
     this.showSatellites = true;
     this.showConnections = true;
     this.showSolutionPath = true;
 
-    this.planetRadius = EARTH_RADIUS;
+    this.planetRadius = 6371;
     this.showAxes = false;
     this.showEquator = false;
     this.showPrimeMeridian = false;
-    this.highQualityTextures = !mobileTextures;
   };
 
   satellitesGUI = new SatelliteSystem();
@@ -211,15 +210,13 @@ function loadControls() {
   
   var planetFolder = gui.addFolder("Planet");
 
-  //planetFolder.add(satellitesGUI, "planetRadius", 100, 20000).step(1);
+  planetFolder.add(satellitesGUI, "planetRadius", 100, 20000).step(1);
   planetFolder.add(satellitesGUI, "showAxes")
     .onChange(toggleCoordinateAxes);
   planetFolder.add(satellitesGUI, "showEquator")
     .onChange(toggleEquator);
   planetFolder.add(satellitesGUI, "showPrimeMeridian")
     .onChange(togglePrimeMeridian);
-  planetFolder.add(satellitesGUI, "highQualityTextures")
-    .onChange(console.log("GUI texture change not implemented, please use the dropdown"));
 
 
   console.log("controls loaded");
@@ -322,32 +319,41 @@ function loadPlanet(planetData) {
     planetRadius = planetData.radius;
   }
 
-  var planet_geometry = new THREE.SphereGeometry(planetRadius, 32, 32);
+  var planetGeometry = new THREE.SphereGeometry(planetRadius, 32, 32);
 
-  var planet_material = null;
-  var texture_loader = new THREE.TextureLoader();
+  var planetMaterial = null;
+  var textureLoader = new THREE.TextureLoader();
 
-  if (planetData.mainTexture) {
-    planet_material = new THREE.MeshPhongMaterial({
-      map: texture_loader.load(planetData.mainTexture)
+  // The mobileTextures boolean variable is defined in graphics_content.html
+  // template and gets its value depending on the choice in the dropdown menu
+  var planetTextures;
+  if (!mobileTextures) {
+    planetTextures = planetData.textures_HIGHRES;
+  } else {
+    planetTextures = planetData.textures_LOWRES;
+  }
+
+  if (planetTextures.mainTexture) {
+    planetMaterial = new THREE.MeshPhongMaterial({
+      map: textureLoader.load(planetTextures.mainTexture)
     });
   } else {
     console.log("no texture for planet found, rendering with MeshPhongMaterial.");
-    planet_material = new THREE.MeshPhongMaterial();
+    planetMaterial = new THREE.MeshPhongMaterial();
   }
 
-  if (planetData.bumpMap) {
-    planet_material.bumpMap = texture_loader.load(planetData.bumpMap);
-    planet_material.bumpScale = planetRadius*0.02;
+  if (planetTextures.bumpMap) {
+    planetMaterial.bumpMap = textureLoader.load(planetTextures.bumpMap);
+    planetMaterial.bumpScale = planetRadius*0.02;
   }
-  if (planetData.specularMap) {
-    planet_material.specularMap = texture_loader.load(planetData.specularMap);
+  if (planetTextures.specularMap) {
+    planetMaterial.specularMap = textureLoader.load(planetTextures.specularMap);
   }
-  if (planetData.normalMap) {
-    planet_material.normalMap = texture_loader.load(planetData.normalMap);
+  if (planetTextures.normalMap) {
+    planetMaterial.normalMap = textureLoader.load(planetTextures.normalMap);
   }
 
-  planet = new THREE.Mesh(planet_geometry, planet_material);
+  planet = new THREE.Mesh(planetGeometry, planetMaterial);
 
   if (planetData.name == "EARTH") {
     // earth tweaks to get the axes, equator and the prime meridian correct
@@ -364,37 +370,48 @@ function loadPlanet(planetData) {
 
   scene.add(planet);
 
+  loadEquator(planetData.radius);
+  loadPrimeMeridian(planetData.radius);
+
+  loadLights(
+    planetData.radius,
+    planetData.ambientLight,
+    planetData.starLight
+  );
+
   console.log(planetData.name + " loaded");
 }
 
 
-// heuristic to get bezier approximations of circles correct
-var c = 1.34*EARTH_RADIUS;
 var equator = [];
 
-function loadEquator() {
+function loadEquator(planetRadius) {
+  // redo this, bezier curves is probably not the best approach
 
-  var equator_material = new THREE.LineBasicMaterial({color : 0xff00ff});
+  // heuristic to get bezier approximations of circles correct
+  var c = 1.34*planetRadius;
+
+  var equatorMaterial = new THREE.LineBasicMaterial({color : 0xff00ff});
 
   var equator1 = new THREE.CubicBezierCurve3(
-      new THREE.Vector3(EARTH_RADIUS + 5, 0, 0),
-      new THREE.Vector3(EARTH_RADIUS + 5, c, 0),
-      new THREE.Vector3(-EARTH_RADIUS - 5, c, 0),
-      new THREE.Vector3(-EARTH_RADIUS - 5, 0, 0)
+      new THREE.Vector3(planetRadius + 5, 0, 0),
+      new THREE.Vector3(planetRadius + 5, c, 0),
+      new THREE.Vector3(-planetRadius - 5, c, 0),
+      new THREE.Vector3(-planetRadius - 5, 0, 0)
   );
-  var equator_geom1 = new THREE.Geometry();
-  equator_geom1.vertices = equator1.getPoints(50);
-  equator[0] = new THREE.Line(equator_geom1, equator_material);
+  var equatorGeom1 = new THREE.Geometry();
+  equatorGeom1.vertices = equator1.getPoints(50);
+  equator[0] = new THREE.Line(equatorGeom1, equatorMaterial);
 
   var equator2 = new THREE.CubicBezierCurve3(
-      new THREE.Vector3(-EARTH_RADIUS - 5, 0, 0),
-      new THREE.Vector3(-EARTH_RADIUS - 5, -c, 0),
-      new THREE.Vector3(EARTH_RADIUS + 5, -c, 0),
-      new THREE.Vector3(EARTH_RADIUS + 5, 0, 0)
+      new THREE.Vector3(-planetRadius - 5, 0, 0),
+      new THREE.Vector3(-planetRadius - 5, -c, 0),
+      new THREE.Vector3(planetRadius + 5, -c, 0),
+      new THREE.Vector3(planetRadius + 5, 0, 0)
   );
-  var equator_geom2 = new THREE.Geometry();
-  equator_geom2.vertices = equator2.getPoints(50);
-  equator[1] = new THREE.Line(equator_geom2, equator_material);
+  var equatorGeom2 = new THREE.Geometry();
+  equatorGeom2.vertices = equator2.getPoints(50);
+  equator[1] = new THREE.Line(equatorGeom2, equatorMaterial);
 
   equator[0].visible = satellitesGUI.showEquator;
   equator[1].visible = satellitesGUI.showEquator;
@@ -408,31 +425,35 @@ function loadEquator() {
 
 var primeMeridian = [];
 
-function loadPrimeMeridian() {
+function loadPrimeMeridian(planetRadius) {
+  // redo this, bezier curves is probably not the best approach
 
-  var meridian_material = new THREE.LineBasicMaterial({color : 0xff00ff});
+  // heuristic to get bezier approximations of circles correct
+  var c = 1.34*planetRadius;
+
+  var meridianMaterial = new THREE.LineBasicMaterial({color : 0xff00ff});
 
   var meridian1 = new THREE.CubicBezierCurve3(
-      new THREE.Vector3(EARTH_RADIUS + 5, 0, 0),
-      new THREE.Vector3(EARTH_RADIUS + 5, 0, c),
-      new THREE.Vector3(-EARTH_RADIUS - 5, 0, c),
-      new THREE.Vector3(-EARTH_RADIUS - 5, 0, 0)
+      new THREE.Vector3(planetRadius + 5, 0, 0),
+      new THREE.Vector3(planetRadius + 5, 0, c),
+      new THREE.Vector3(-planetRadius - 5, 0, c),
+      new THREE.Vector3(-planetRadius - 5, 0, 0)
   );
-  var meridian_geom1 = new THREE.Geometry();
-  meridian_geom1.vertices = meridian1.getPoints(50);
+  var meridianGeom1 = new THREE.Geometry();
+  meridianGeom1.vertices = meridian1.getPoints(50);
 
-  primeMeridian[0] = new THREE.Line(meridian_geom1, meridian_material);
+  primeMeridian[0] = new THREE.Line(meridianGeom1, meridianMaterial);
 
   var meridian2 = new THREE.CubicBezierCurve3(
-      new THREE.Vector3(-EARTH_RADIUS - 5, 0, 0),
-      new THREE.Vector3(-EARTH_RADIUS - 5, 0, -c),
-      new THREE.Vector3(EARTH_RADIUS + 5, 0, -c),
-      new THREE.Vector3(EARTH_RADIUS + 5, 0, 0)
+      new THREE.Vector3(-planetRadius - 5, 0, 0),
+      new THREE.Vector3(-planetRadius - 5, 0, -c),
+      new THREE.Vector3(planetRadius + 5, 0, -c),
+      new THREE.Vector3(planetRadius + 5, 0, 0)
   );
-  var meridian_geom2 = new THREE.Geometry();
-  meridian_geom2.vertices = meridian2.getPoints(50);
+  var meridianGeom2 = new THREE.Geometry();
+  meridianGeom2.vertices = meridian2.getPoints(50);
 
-  primeMeridian[1] = new THREE.Line(meridian_geom2, meridian_material);
+  primeMeridian[1] = new THREE.Line(meridianGeom2, meridianMaterial);
 
   primeMeridian[0].visible = satellitesGUI.showPrimeMeridian;
   primeMeridian[1].visible = satellitesGUI.showPrimeMeridian;
@@ -445,14 +466,14 @@ function loadPrimeMeridian() {
 }
 
 
-function loadLights() {
+function loadLights(planetRadius, ambientBrightness, starBrightness) {
 
-  var ambientLight = new THREE.AmbientLight( 0xffffff, 0.4 );
+  var ambientLight = new THREE.AmbientLight( 0xffffff, ambientBrightness );
   scene.add( ambientLight );
 
-  var sun = new THREE.PointLight( 0xffffff, 1, 0 );
-  sun.position.set( 4*EARTH_RADIUS, 4*EARTH_RADIUS, 4*EARTH_RADIUS);
-  scene.add(sun);
+  var star = new THREE.PointLight( 0xffffff, starBrightness, 0 );
+  star.position.set( 4*planetRadius, 4*planetRadius, 4*planetRadius);
+  scene.add(star);
 
   console.log("lights loaded");
 }
