@@ -1,7 +1,16 @@
 "use strict";
 
+// TODO refactor all program state global variables
+// into one state-dictionary
+
+// check for WebGL support
+if (!Detector.webgl) {
+  Detector.addGetWebGLMessage();
+  document.getElementById("graphics-container").innerHTML = "";
+}
 
 // Map with different planet radiuses, textures etc.
+// Could be moved into a database in the backend if there's many of these
 var PLANET_PARAMETERS = {
   earth: {
     name: "EARTH",
@@ -19,8 +28,15 @@ var PLANET_PARAMETERS = {
   }
 };
 
+
 //all toggles could be merged into one toggle function taking an array as
 //parameter
+function toggleObjectsVisible(objectArray) {
+  objectArray.forEach(function(element) {
+    element.visible = !element.visible;
+  });
+}
+
 function toggleSatelliteConnections() {
   satelliteConnections.forEach(function(element) {
     element.visible = !element.visible;
@@ -45,11 +61,33 @@ function toggleCoordinateAxes() {
   z_axis.visible = !z_axis.visible;
 }
 function toggleSolutionPath() {
-  var colorHex = satellitesGUI.showSolutionPath ? 0x00ff00 : 0xff6600;
+  var colorHex = satellitesGUI.showShortestPath ? 0x00ff00 : 0xff6600;
   connectionPath.forEach(function(element) {
     element.material.color.setHex(colorHex);
   });
 }
+function toggleMoveEndpoints(startListener) {
+  // Toggle mouse listener
+  // Make the endpoints glow like neon lights
+
+  console.log("toggle move endpoints, startListener:", startListener);
+
+  if (startListener) {
+    $("#graphics-container").on("mousemove", onMouseMove);
+
+    start.material.emissiveIntensity = 1;
+    end.material.emissiveIntensity = 1;
+  } else {
+    // We don't want to generate thousands of unused events
+    $("#graphics-container").off("mousemove");
+
+    start.material.emissiveIntensity = 0;
+    end.material.emissiveIntensity = 0;
+  }
+
+
+}
+
 
 function removeGraphicsObjects(array) {
   // Removes all Object3D instances from the scene.
@@ -62,7 +100,6 @@ function removeGraphicsObjects(array) {
 var scene, camera, renderer;
 var gui, controls;
 
-var EARTH_RADIUS = 6371.0;
 var camera_far_frustum;
 
 function init() {
@@ -71,7 +108,7 @@ function init() {
 
   var innerwidth = window.innerWidth;
   var innerheight = window.innerHeight;
-  
+
   camera_far_frustum = 100000;
 
   camera = new THREE.PerspectiveCamera(
@@ -84,21 +121,21 @@ function init() {
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(innerwidth, innerheight);
 
-  var container = document.getElementById("graphics-container");
-  container.appendChild(renderer.domElement);
+  var graphicsContainer = document.getElementById("graphics-container");
+  graphicsContainer.appendChild(renderer.domElement);
 
-
-  loadControls();
+  loadGUI();
   loadPlanet(PLANET_PARAMETERS.earth);
-  loadCoordinateAxes();
+  loadCoordinateAxes(); // replace with THREE.AxisHelper
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
+
 
 }
 
 var satellitesGUI;
 
-function loadControls() {
+function loadGUI() {
 
   var SatelliteSystem = function() {
     this.satelliteCount = 5;
@@ -107,7 +144,7 @@ function loadControls() {
 
     this.generateSatellites = function() {
       $.getJSON(
-        "generator.json", 
+        "generator.json",
         { satelliteCount: this.satelliteCount,
           minAltitude: this.minAltitude,
           maxAltitude: this.maxAltitude,
@@ -118,61 +155,58 @@ function loadControls() {
 
     this.altitude = 0.0;
 
-    this.tetrahedron = function() {
+    this.polyhedronJSON = function(polyhedronName) {
+      // Request generation of polyhedron coordinates from server
+      // and load satellites at the returned coordinates
       $.getJSON(
-        "generator.json", 
-        { polyhedron: "tetrahedron",
+        "generator.json",
+        { polyhedron: polyhedronName,
           altitude: this.altitude,
           planetRadius: this.planetRadius },
         function(response) { loadSatellites(response); }
       );
+    }
+
+    this.tetrahedron = function() {
+      this.polyhedronJSON("tetrahedron");
     };
     this.cube = function() {
-      $.getJSON(
-        "generator.json", 
-        { polyhedron: "cube",
-          altitude: this.altitude,
-          planetRadius: this.planetRadius },
-        function(response) { loadSatellites(response); }
-      );
+      this.polyhedronJSON("cube");
     };
     this.octahedron = function() {
-      $.getJSON(
-        "generator.json", 
-        { polyhedron: "octahedron",
-          altitude: this.altitude,
-          planetRadius: this.planetRadius },
-        function(response) { loadSatellites(response); }
-      );
+      this.polyhedronJSON("octahedron");
     };
     this.dodecahedron = function() {
-      $.getJSON(
-        "generator.json", 
-        { polyhedron: "dodecahedron",
-          altitude: this.altitude,
-          planetRadius: this.planetRadius },
-        function(response) { loadSatellites(response); }
-      );
+      this.polyhedronJSON("dodecahedron");
     };
     this.icosahedron = function() {
-      $.getJSON(
-        "generator.json", 
-        { polyhedron: "icosahedron",
-          altitude: this.altitude,
-          planetRadius: this.planetRadius },
-        function(response) { loadSatellites(response); }
-      );
+      this.polyhedronJSON("icosahedron");
     };
 
-    //this.redraw = function() {
-     // $.getJSON(
+    this.redraw = function() {
+      // Redraw planet textures
 
+      removeGraphicsObjects([ planet, equator, primeMeridian ]);
+
+      switch(this.planetName) {
+        //case "Mars":
+          //break;
+        //case "Arda":
+          //break;
+        default:
+          console.log("redraw default: Earth");
+          loadPlanet(PLANET_PARAMETERS.earth);
+          break;
+      }
+    };
+
+    this.moveEndpointsMode = false;
 
     this.showSatellites = true;
     this.showConnections = true;
-    this.showSolutionPath = true;
+    this.showShortestPath = true;
 
-    this.planetRadius = 6371;
+    this.planetName = "Earth";
     this.showAxes = false;
     this.showEquator = false;
     this.showPrimeMeridian = false;
@@ -182,35 +216,44 @@ function loadControls() {
 
   gui = new dat.GUI({ autoPlace: false, width: 300 });
   $("#gui-container").append(gui.domElement);
-  //$("#gui-container").draggable(); //renders the gui unusable, 
+  //$("#gui-container").draggable(); //renders the gui unusable,
   //needs a drag area
 
+  // FILL THE DAT GUI
+
   var satFolder = gui.addFolder("Satellites");
+
+  satFolder.add(satellitesGUI, "showSatellites")
+    .onChange(toggleSatellites);
+  satFolder.add(satellitesGUI, "showConnections")
+    .onChange(toggleSatelliteConnections);
+  satFolder.add(satellitesGUI, "showShortestPath")
+    .onChange(toggleSolutionPath);
+
   var randSatFl = satFolder.addFolder("Random generation");
   var constellationFl = satFolder.addFolder("Constellations");
 
   randSatFl.add(satellitesGUI, "satelliteCount", 0, 100).step(1);
-  randSatFl.add(satellitesGUI, "minAltitude", 0, 9999).step(1);
-  randSatFl.add(satellitesGUI, "maxAltitude", 1, 10000).step(1);
+  randSatFl.add(satellitesGUI, "minAltitude", 0, 49999).step(1);
+  randSatFl.add(satellitesGUI, "maxAltitude", 1, 50000).step(1);
   randSatFl.add(satellitesGUI, "generateSatellites");
 
-  constellationFl.add(satellitesGUI, "altitude", 0, 10000).step(1);
+  constellationFl.add(satellitesGUI, "altitude", 0, 50000).step(1);
   constellationFl.add(satellitesGUI, "tetrahedron");
   constellationFl.add(satellitesGUI, "cube");
   constellationFl.add(satellitesGUI, "octahedron");
   constellationFl.add(satellitesGUI, "dodecahedron");
   constellationFl.add(satellitesGUI, "icosahedron");
 
-  satFolder.add(satellitesGUI, "showSatellites")
-    .onChange(toggleSatellites);
-  satFolder.add(satellitesGUI, "showConnections")
-    .onChange(toggleSatelliteConnections);
-  satFolder.add(satellitesGUI, "showSolutionPath")
-    .onChange(toggleSolutionPath);
-  
+  var callFolder = gui.addFolder("Call");
+
+  callFolder.add(satellitesGUI, "moveEndpointsMode").
+    onChange(toggleMoveEndpoints, satellitesGUI.moveEndpointsMode);
+
   var planetFolder = gui.addFolder("Planet");
 
-  planetFolder.add(satellitesGUI, "planetRadius", 100, 20000).step(1);
+  planetFolder.add(satellitesGUI, "planetName", [ "Earth" ]);
+  planetFolder.add(satellitesGUI, "redraw");
   planetFolder.add(satellitesGUI, "showAxes")
     .onChange(toggleCoordinateAxes);
   planetFolder.add(satellitesGUI, "showEquator")
@@ -227,18 +270,18 @@ var satelliteConnections = [];
 var connectionPath = [];
 
 function loadSatellites(data) {
-  /* 
+  /*
    * Constructs the graphical representation from satellite data.
    * Start and end points should be provided with the satellites.
    */
 
-  if (satelliteMeshes.length > 0) 
+  if (satelliteMeshes.length > 0)
     removeGraphicsObjects(satelliteMeshes);
-  if (satelliteConnections.length > 0) 
+  if (satelliteConnections.length > 0)
     removeGraphicsObjects(satelliteConnections);
-  if (connectionPath.length > 0) 
+  if (connectionPath.length > 0)
     removeGraphicsObjects(connectionPath);
-  
+
 
   var sat_size = 150;
   var geo;
@@ -258,11 +301,11 @@ function loadSatellites(data) {
     }
 
     var satellite = new THREE.Mesh(geo, mat);
-    
+
     satellite.position.x = element.pos[0];
     satellite.position.y = element.pos[1];
     satellite.position.z = element.pos[2];
-    
+
     satelliteMeshes[index] = satellite;
 
     satellite.visible = satellitesGUI.showSatellites;
@@ -274,7 +317,7 @@ function loadSatellites(data) {
   });
 
   // CONNECTIONS BETWEEN SATELLITES
-  
+
   var line_geometry;
 
   data.edges.forEach(function(element, index) {
@@ -305,7 +348,7 @@ function loadSatellites(data) {
     scene.add(line);
   });
 
-  if (satellitesGUI.showSolutionPath)
+  if (satellitesGUI.showShortestPath)
     toggleSolutionPath();
 
   console.log("satellites loaded");
@@ -314,7 +357,7 @@ function loadSatellites(data) {
 var planet;
 function loadPlanet(planetData) {
 
-  var planetRadius = 6000;
+  var planetRadius = 0;
   if (planetData.radius) {
     planetRadius = planetData.radius;
   }
@@ -338,7 +381,7 @@ function loadPlanet(planetData) {
       map: textureLoader.load(planetTextures.mainTexture)
     });
   } else {
-    console.log("no texture for planet found, rendering with MeshPhongMaterial.");
+    console.log("no texture for planet found, rendering with empty texture.");
     planetMaterial = new THREE.MeshPhongMaterial();
   }
 
@@ -372,6 +415,8 @@ function loadPlanet(planetData) {
 
   loadEquator(planetData.radius);
   loadPrimeMeridian(planetData.radius);
+
+  loadEndpoints(planetData.radius, planet);
 
   loadLights(
     planetData.radius,
@@ -527,12 +572,158 @@ function loadCoordinateAxes() {
   console.log("coordinate axes loaded");
 }
 
+
+// START AND END POSITIONS MANUAL MOVEMENT LOGIC
+// use jQuery on and off
+// dat GUI: toggleEndpoints
+//    -> toggle click listener for clicking on start and end
+//    if start or end clicked:
+//        -> toggle mousemove listener with raycaster and move point, could also
+//        be inflated nicely while it's being moved around
+
+// TODO add the loadEndpoints toggle to dat GUI
+
+var start, end;
+
+function loadEndpoints(planetRadius, planetMesh) {
+
+  // Cones to model start and end points
+  var geometry = new THREE.CylinderGeometry(planetRadius/100, 0, planetRadius/10);
+  // Pointy end towards earth
+  geometry.rotateX(Math.PI/2);
+
+  // Green for start, purple for end
+  var materialStart = new THREE.MeshPhongMaterial({
+                      color: 0x339933,
+                      emissive: 0x00ff00,
+                      emissiveIntensity: 0
+                    });
+  var materialEnd = new THREE.MeshPhongMaterial({
+                      color: 0x9900cc,
+                      emissive: 0xff00ff,
+                      emissiveIntensity: 0
+                    });
+  start = new THREE.Mesh(geometry, materialStart);
+  end = new THREE.Mesh(geometry, materialEnd);
+
+  //TEMP
+  start.position.set(6500, 0, 0);
+  end.position.set(5500, 3500, 0);
+
+  // AJAX HERE TO GET RANDOM START AND END POS FROM SERVER
+
+  start.visible = true;
+  end.visible = true;
+  scene.add(start);
+  scene.add(end);
+
+}
+
+var MOUSE_POS = new THREE.Vector2();
+var DRAG_OBJECT = {};
+
+function onMouseMove(event) {
+
+  event.preventDefault();
+
+  // Relative position because there's a navbar above the canvas
+  // Take also relative of x in case a vertical navbar is added
+  var graphicsContainer = $("#graphics-container");
+  var relativeX = event.clientX - graphicsContainer.offset().left;
+  var relativeY = event.clientY - graphicsContainer.offset().top;
+
+  MOUSE_POS.x = (relativeX/renderer.domElement.clientWidth)*2 - 1;
+  MOUSE_POS.y = -(relativeY/renderer.domElement.clientHeight)*2 + 1;
+  console.log("MOUSE_POS at:", MOUSE_POS.x, MOUSE_POS.y);
+
+  var raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(MOUSE_POS, camera);
+
+  var intersectPlanet = raycaster.intersectObject(planet);
+
+  if (!$.isEmptyObject(DRAG_OBJECT)) {
+    console.log("DRAG_OBJECT exists with:", DRAG_OBJECT);
+    if (intersectPlanet.length > 0) {
+      console.log("dragging");
+      DRAG_OBJECT.pointer.position.set(0,0,0);
+      var planetMesh = intersectPlanet[0];
+      var faceNormal = planetMesh.face.normal;
+      // Flip z axis and swap it with the y axis
+      var lookAtVec = new THREE.Vector3(faceNormal.x, -faceNormal.z, faceNormal.y);
+      DRAG_OBJECT.pointer.lookAt(lookAtVec);
+      //DRAG_OBJECT.pointer.position.copy(DRAG_OBJECT.planetMesh.point.multiplyScalar(1.03));
+      DRAG_OBJECT.pointer.position.copy(planetMesh.point);
+    }
+    return;
+  }
+
+  var intersectPointer = raycaster.intersectObjects([start, end]);
+
+  if (intersectPointer.length > 0 && intersectPlanet.length > 0) {
+    // Raycaster intersects a pointer and the planet
+    // Enable dragging pointer across planet surface by mousedown
+
+    intersectPointer[0].object.material.emissiveIntensity = 0;
+
+    if (controls.enabled) {
+      controls.enabled = false;
+      $("#graphics-container").on(
+          "mousedown",
+          onMouseDownDrag
+        );
+      $("#graphics-container").on(
+          "mouseup",
+          onMouseUpDrag
+        );
+      console.log("listening for mousedown");
+    }
+
+  } else {
+
+    if ($.isEmptyObject(DRAG_OBJECT) && !controls.enabled) {
+      controls.enabled = true;
+      $("#graphics-container").off("mousedown");
+      $("#graphics-container").off("mouseup");
+      console.log("stop listening to mousedown");
+    }
+
+    if (start.material.emissiveIntensity < 1)
+      start.material.emissiveIntensity = 1;
+    if (end.material.emissiveIntensity < 1)
+      end.material.emissiveIntensity = 1;
+
+  }
+
+}
+
+function onMouseDownDrag() {
+
+  var raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(MOUSE_POS, camera);
+
+  var intersectPointer = raycaster.intersectObjects([start, end]);
+  var intersectPlanet = raycaster.intersectObject(planet);
+
+  if (intersectPointer.length > 0) {
+    DRAG_OBJECT.pointer = intersectPointer[0].object;
+  }
+  if (intersectPlanet.length > 0) {
+    DRAG_OBJECT.planetMesh = intersectPlanet[0];
+  }
+
+}
+
+function onMouseUpDrag() {
+  DRAG_OBJECT = {};
+}
+
 function render() {
   requestAnimationFrame(render);
   renderer.render(scene, camera);
 }
 
 window.addEventListener('resize', function () {
+  // Update canvas if the user resizes their window
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
