@@ -112,7 +112,7 @@ function init() {
   camera_far_frustum = 100000;
 
   camera = new THREE.PerspectiveCamera(
-      80,
+      70,
       innerwidth/innerheight,
       1,
       camera_far_frustum
@@ -136,6 +136,8 @@ function init() {
 var satellitesGUI;
 
 function loadGUI() {
+
+  // TODO: add a reset camera button to center the earth back to 0 0 0
 
   var SatelliteSystem = function() {
     this.satelliteCount = 5;
@@ -510,7 +512,7 @@ function loadPrimeMeridian(planetRadius) {
 
 }
 
-
+// TODO: redraw planet currently ignores this function
 function loadLights(planetRadius, ambientBrightness, starBrightness) {
 
   var ambientLight = new THREE.AmbientLight( 0xffffff, ambientBrightness );
@@ -523,7 +525,15 @@ function loadLights(planetRadius, ambientBrightness, starBrightness) {
   console.log("lights loaded");
 }
 
+
+
+
 // COORDINATE SYSTEM
+//
+//
+// THIS CAN BE REPLACED WITH THREE.AxisHelper
+//
+//
 // X: RED
 // Y: GREEN
 // Z: BLUE
@@ -583,20 +593,36 @@ function loadCoordinateAxes() {
 
 // TODO add the loadEndpoints toggle to dat GUI
 
+function getBezierVertices(start, end) {
+
+  var bezierMiddle = new THREE.Vector3(0, 0, 0);
+  bezierMiddle.add(start).add(end);
+
+  var planetRadius = PLANET_PARAMETERS.earth.radius;
+  bezierMiddle.setLength(planetRadius + 0.7*start.distanceTo(end));
+
+  var bezierCurve = new THREE.QuadraticBezierCurve3(start, bezierMiddle, end);
+
+  return bezierCurve.getPoints(50);
+}
+
 var start, end;
+var startEndConnection;
 
 function loadEndpoints(planetRadius, planetMesh) {
 
   // Cones to model start and end points
-  var geometry = new THREE.CylinderGeometry(planetRadius/100, 0, planetRadius/10);
+  var geometry = new THREE.CylinderGeometry(planetRadius/150, 0, planetRadius/25);
   // Pointy end towards earth
   geometry.rotateX(Math.PI/2);
+  // Lift slightly up from the surface
+  geometry.translate(0, 0, 70);
 
   // Green for start, purple for end
   var materialStart = new THREE.MeshPhongMaterial({
-                      color: 0x339933,
-                      emissive: 0x00ff00,
-                      emissiveIntensity: 0
+                        color: 0x339933,
+                        emissive: 0x00ff00,
+                        emissiveIntensity: 0
                     });
   var materialEnd = new THREE.MeshPhongMaterial({
                       color: 0x9900cc,
@@ -606,18 +632,33 @@ function loadEndpoints(planetRadius, planetMesh) {
   start = new THREE.Mesh(geometry, materialStart);
   end = new THREE.Mesh(geometry, materialEnd);
 
-  //TEMP
-  start.position.set(6500, 0, 0);
-  end.position.set(5500, 3500, 0);
+  var HelsinkiPos = new THREE.Vector3(3037.6, 1290.3, 5418.4);
+  var TallinPos = new THREE.Vector3(3179.3, 1393.2, 5325.9);
+
+  start.position.set(0, 0, 0);
+  start.lookAt(HelsinkiPos);
+  start.position.copy(HelsinkiPos);
+
+  end.position.set(0, 0, 0);
+  end.lookAt(TallinPos);
+  end.position.copy(TallinPos);
 
   // AJAX HERE TO GET RANDOM START AND END POS FROM SERVER
 
-  start.visible = true;
-  end.visible = true;
   scene.add(start);
   scene.add(end);
 
+  var bezierGeometry = new THREE.Geometry();
+  bezierGeometry.vertices = getBezierVertices(start.position, end.position);
+  var bezierMaterial = new THREE.LineBasicMaterial({color: 0xffff00 });
+  startEndConnection = new THREE.Line(bezierGeometry, bezierMaterial);
+
+  scene.add(startEndConnection);
+
+  console.log("endpoints loaded");
+
 }
+
 
 var MOUSE_POS = new THREE.Vector2();
 var DRAG_OBJECT = {};
@@ -642,9 +683,9 @@ function onMouseMove(event) {
   var intersectPlanet = raycaster.intersectObject(planet);
 
   if (!$.isEmptyObject(DRAG_OBJECT)) {
-    console.log("DRAG_OBJECT exists with:", DRAG_OBJECT);
     if (intersectPlanet.length > 0) {
-      console.log("dragging");
+      // Move pointer where the mouse is dragged
+
       DRAG_OBJECT.pointer.position.set(0,0,0);
       var planetMesh = intersectPlanet[0];
       var faceNormal = planetMesh.face.normal;
@@ -653,6 +694,13 @@ function onMouseMove(event) {
       DRAG_OBJECT.pointer.lookAt(lookAtVec);
       //DRAG_OBJECT.pointer.position.copy(DRAG_OBJECT.planetMesh.point.multiplyScalar(1.03));
       DRAG_OBJECT.pointer.position.copy(planetMesh.point);
+
+      // Update connection path curve
+      startEndConnection.geometry.vertices =
+        getBezierVertices(start.position, end.position);
+      startEndConnection.geometry.verticesNeedUpdate = true;
+
+
     }
     return;
   }
