@@ -77,9 +77,6 @@
                          {:name "END" :pos [2.0 0 -2.0]}]
           missing-end [{:name "SAT1" :pos [1.0 0 -1.0]}
                        {:name "START" :pos [2.0 0 -2.0]}]
-          wrong-sat [{:name "SATb" :pos [1.0 0 -1.0]}
-                     {:name "START" :pos [2.0 0 -2.0]}
-                     {:name "END" :pos [2.0 2 -2.0]}]
           bad-pos [{:name "SAT1" :pos [2 0 -1.0]}
                    {:name "START" :pos ["2" 0 -2.0]}
                    {:name "END" :pos [2.0 2 -2.0]}]
@@ -92,7 +89,6 @@
                      {:name "END" :pos [2.0 2 -2.0]}]]
       (is (not (empty? (parser/errors-in-query missing-start))))
       (is (not (empty? (parser/errors-in-query missing-end))))
-      (is (not (empty? (parser/errors-in-query wrong-sat))))
       (is (not (empty? (parser/errors-in-query bad-pos))))
       (is (not (empty? (parser/errors-in-query wrong-dimension))))
       (is (not (empty? (parser/errors-in-query duplicate)))))
