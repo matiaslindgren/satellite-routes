@@ -67,30 +67,28 @@ function toggleSolutionPath() {
   });
 }
 function toggleMoveEndpoints(startListener) {
-  // Toggle mouse listener
-  // Make the endpoints glow like neon lights
-
-  console.log("toggle move endpoints, startListener:", startListener);
 
   if (startListener) {
+    // Toggle mouse listener
     $("#graphics-container").on("mousemove", onMouseMove);
 
+    // Make the endpoints glow like neon lights
     start.material.emissiveIntensity = 1;
     end.material.emissiveIntensity = 1;
+
   } else {
     // We don't want to generate thousands of unused events
     $("#graphics-container").off("mousemove");
 
+    // Revert to normal color
     start.material.emissiveIntensity = 0;
     end.material.emissiveIntensity = 0;
   }
-
-
 }
 
 
 function removeGraphicsObjects(array) {
-  // Removes all Object3D instances from the scene.
+  // Removes all Object3D instances in array from the scene.
   // Assumes all instances are children of the scene.
   array.forEach(function(element) {
     scene.remove(element);
@@ -130,7 +128,6 @@ function init() {
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-
 }
 
 var satellitesGUI;
@@ -145,49 +142,42 @@ function loadGUI() {
     this.maxAltitude = 700.0;
 
     this.generateSatellites = function() {
+
       $.getJSON(
         "generator.json",
         { satelliteCount: this.satelliteCount,
           minAltitude: this.minAltitude,
           maxAltitude: this.maxAltitude,
-          planetRadius: this.planetRadius },
+          planetRadius: -1, // Currently not an option, -1 defaults to Earth
+          start: start.position.toArray(),
+          end: end.position.toArray() },
         function(response) { loadSatellites(response); }
       );
     }
 
     this.altitude = 0.0;
+    this.polyhedron = "cube";
 
-    this.polyhedronJSON = function(polyhedronName) {
+    this.generateConstellation = function() {
       // Request generation of polyhedron coordinates from server
-      // and load satellites at the returned coordinates
+      // and load satellites at the returned coordinates.
+      // Also sends the current start and end positions.
+
       $.getJSON(
         "generator.json",
-        { polyhedron: polyhedronName,
+        { polyhedron: this.polyhedron,
           altitude: this.altitude,
-          planetRadius: this.planetRadius },
+          planetRadius: -1, // Currently not an option, -1 defaults to Earth
+          start: start.position.toArray(),
+          end: end.position.toArray() },
         function(response) { loadSatellites(response); }
       );
     }
 
-    this.tetrahedron = function() {
-      this.polyhedronJSON("tetrahedron");
-    };
-    this.cube = function() {
-      this.polyhedronJSON("cube");
-    };
-    this.octahedron = function() {
-      this.polyhedronJSON("octahedron");
-    };
-    this.dodecahedron = function() {
-      this.polyhedronJSON("dodecahedron");
-    };
-    this.icosahedron = function() {
-      this.polyhedronJSON("icosahedron");
-    };
-
     this.redraw = function() {
       // Redraw planet textures
 
+      // TODO remove ambient light and sun
       removeGraphicsObjects([ planet, equator, primeMeridian ]);
 
       switch(this.planetName) {
@@ -234,6 +224,13 @@ function loadGUI() {
 
   var randSatFl = satFolder.addFolder("Random generation");
   var constellationFl = satFolder.addFolder("Constellations");
+  var validPolyhedrons = [
+    "tetrahedron",
+    "cube",
+    "octahedron",
+    "dodecahedron",
+    "icosahedron"
+  ];
 
   randSatFl.add(satellitesGUI, "satelliteCount", 0, 100).step(1);
   randSatFl.add(satellitesGUI, "minAltitude", 0, 49999).step(1);
@@ -241,16 +238,13 @@ function loadGUI() {
   randSatFl.add(satellitesGUI, "generateSatellites");
 
   constellationFl.add(satellitesGUI, "altitude", 0, 50000).step(1);
-  constellationFl.add(satellitesGUI, "tetrahedron");
-  constellationFl.add(satellitesGUI, "cube");
-  constellationFl.add(satellitesGUI, "octahedron");
-  constellationFl.add(satellitesGUI, "dodecahedron");
-  constellationFl.add(satellitesGUI, "icosahedron");
+  constellationFl.add(satellitesGUI, "polyhedron", validPolyhedrons);
+  constellationFl.add(satellitesGUI, "generateConstellation");
 
   var callFolder = gui.addFolder("Call");
 
-  callFolder.add(satellitesGUI, "moveEndpointsMode").
-    onChange(toggleMoveEndpoints, satellitesGUI.moveEndpointsMode);
+  callFolder.add(satellitesGUI, "moveEndpointsMode")
+    .onChange(toggleMoveEndpoints, satellitesGUI.moveEndpointsMode);
 
   var planetFolder = gui.addFolder("Planet");
 
@@ -277,64 +271,56 @@ function loadSatellites(data) {
    * Start and end points should be provided with the satellites.
    */
 
-  if (satelliteMeshes.length > 0)
+  if (satelliteMeshes.length > 0) {
     removeGraphicsObjects(satelliteMeshes);
-  if (satelliteConnections.length > 0)
+    satelliteMeshes = [];
+  }
+  if (satelliteConnections.length > 0) {
     removeGraphicsObjects(satelliteConnections);
-  if (connectionPath.length > 0)
+    satelliteConnections = [];
+  }
+  if (connectionPath.length > 0) {
     removeGraphicsObjects(connectionPath);
-
+    connectionPath = [];
+  }
 
   var sat_size = 150;
-  var geo;
-  var mat;
+  var geometry;
+  var material;
+
+  var planetCenter = new THREE.Vector3(0, 0, 0);
 
   data.nodes.forEach(function(element, index) {
 
-    if (element.name == "START") {
-      geo = new THREE.SphereGeometry(sat_size/2, 4, 4);
-      mat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-    } else if (element.name == "END") {
-      geo = new THREE.SphereGeometry(sat_size/2, 4, 4);
-      mat = new THREE.MeshLambertMaterial({ color: 0xffff00 });
-    } else {
-      geo = new THREE.BoxGeometry(sat_size, sat_size, sat_size);
-      mat = new THREE.MeshLambertMaterial({ color: 0xcc0099 });
-    }
+    if (element.name === "START" || element.name === "END")
+      geometry = new THREE.BoxGeometry(0, 0, 0);
+    else
+      geometry = new THREE.BoxGeometry(sat_size, sat_size, sat_size);
+    material = new THREE.MeshLambertMaterial({ color: 0xcc0099 });
 
-    var satellite = new THREE.Mesh(geo, mat);
-
-    satellite.position.x = element.pos[0];
-    satellite.position.y = element.pos[1];
-    satellite.position.z = element.pos[2];
-
-    satelliteMeshes[index] = satellite;
-
+    var satellite = new THREE.Mesh(geometry, material);
+    satellite.name = element.name;
+    satellite.position.fromArray(element.pos);
     satellite.visible = satellitesGUI.showSatellites;
+    satellite.lookAt(planetCenter);
 
-    satellite.lookAt(new THREE.Vector3(0, 0, 0));
-
+    satelliteMeshes.push(satellite);
     scene.add(satellite);
 
   });
+
+  satelliteConnections.needsServerUpdate = false;
 
   // CONNECTIONS BETWEEN SATELLITES
 
   var line_geometry;
 
   data.edges.forEach(function(element, index) {
+
     line_geometry = new THREE.Geometry();
     line_geometry.vertices.push(
-        new THREE.Vector3(
-          element[0].pos[0],
-          element[0].pos[1],
-          element[0].pos[2]
-          ),
-        new THREE.Vector3(
-          element[1].pos[0],
-          element[1].pos[1],
-          element[1].pos[2]
-          )
+        new THREE.Vector3().fromArray(element[0].pos),
+        new THREE.Vector3().fromArray(element[1].pos)
     );
 
     var line_material = new THREE.LineBasicMaterial({ color: 0xff6600 });
@@ -371,6 +357,8 @@ function loadPlanet(planetData) {
 
   // The mobileTextures boolean variable is defined in graphics_content.html
   // template and gets its value depending on the choice in the dropdown menu
+  // TODO: this could be removed completely and only use some light-medium
+  // textures
   var planetTextures;
   if (!mobileTextures) {
     planetTextures = planetData.textures_HIGHRES;
@@ -582,24 +570,18 @@ function loadCoordinateAxes() {
   console.log("coordinate axes loaded");
 }
 
-
-// START AND END POSITIONS MANUAL MOVEMENT LOGIC
-// use jQuery on and off
-// dat GUI: toggleEndpoints
-//    -> toggle click listener for clicking on start and end
-//    if start or end clicked:
-//        -> toggle mousemove listener with raycaster and move point, could also
-//        be inflated nicely while it's being moved around
-
-// TODO add the loadEndpoints toggle to dat GUI
-
 function getBezierVertices(start, end) {
+  // Returns a new set of points for a Bezier curve geometry
+  // Used for dynamic updating of the Bezier curve
 
-  var bezierMiddle = new THREE.Vector3(0, 0, 0);
-  bezierMiddle.add(start).add(end);
+  var bezierMiddle = new THREE.Vector3().add(start).add(end);
 
+  // Heuristic to approximate an aerial path from start to end as a Bezier
+  // curve
+  // Is currently doing a poor job
   var planetRadius = PLANET_PARAMETERS.earth.radius;
-  bezierMiddle.setLength(planetRadius + 0.7*start.distanceTo(end));
+  var c = 0.15*Math.pow(start.distanceTo(end), 1.15);
+  bezierMiddle.setLength(planetRadius + c);
 
   var bezierCurve = new THREE.QuadraticBezierCurve3(start, bezierMiddle, end);
 
@@ -612,11 +594,11 @@ var startEndConnection;
 function loadEndpoints(planetRadius, planetMesh) {
 
   // Cones to model start and end points
-  var geometry = new THREE.CylinderGeometry(planetRadius/150, 0, planetRadius/25);
+  var geometry = new THREE.CylinderGeometry(planetRadius/120, 0, planetRadius/20);
   // Pointy end towards earth
   geometry.rotateX(Math.PI/2);
   // Lift slightly up from the surface
-  geometry.translate(0, 0, 70);
+  geometry.translate(0, 0, 125);
 
   // Green for start, purple for end
   var materialStart = new THREE.MeshPhongMaterial({
@@ -625,23 +607,24 @@ function loadEndpoints(planetRadius, planetMesh) {
                         emissiveIntensity: 0
                     });
   var materialEnd = new THREE.MeshPhongMaterial({
-                      color: 0x9900cc,
-                      emissive: 0xff00ff,
+                      color: 0x0000ff,
+                      emissive: 0x00ffff,
                       emissiveIntensity: 0
                     });
+
   start = new THREE.Mesh(geometry, materialStart);
   end = new THREE.Mesh(geometry, materialEnd);
 
-  var HelsinkiPos = new THREE.Vector3(3037.6, 1290.3, 5418.4);
-  var TallinPos = new THREE.Vector3(3179.3, 1393.2, 5325.9);
+  var HelsinkiPos = new THREE.Vector3(3093.2, 1314.1, 5400);
+  var CopenhagenPos = new THREE.Vector3(3768.8, 747.6, 5074.2);
 
   start.position.set(0, 0, 0);
   start.lookAt(HelsinkiPos);
   start.position.copy(HelsinkiPos);
 
   end.position.set(0, 0, 0);
-  end.lookAt(TallinPos);
-  end.position.copy(TallinPos);
+  end.lookAt(CopenhagenPos);
+  end.position.copy(CopenhagenPos);
 
   // AJAX HERE TO GET RANDOM START AND END POS FROM SERVER
 
@@ -675,7 +658,6 @@ function onMouseMove(event) {
 
   MOUSE_POS.x = (relativeX/renderer.domElement.clientWidth)*2 - 1;
   MOUSE_POS.y = -(relativeY/renderer.domElement.clientHeight)*2 + 1;
-  console.log("MOUSE_POS at:", MOUSE_POS.x, MOUSE_POS.y);
 
   var raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(MOUSE_POS, camera);
@@ -692,14 +674,13 @@ function onMouseMove(event) {
       // Flip z axis and swap it with the y axis
       var lookAtVec = new THREE.Vector3(faceNormal.x, -faceNormal.z, faceNormal.y);
       DRAG_OBJECT.pointer.lookAt(lookAtVec);
-      //DRAG_OBJECT.pointer.position.copy(DRAG_OBJECT.planetMesh.point.multiplyScalar(1.03));
       DRAG_OBJECT.pointer.position.copy(planetMesh.point);
 
       // Update connection path curve
       startEndConnection.geometry.vertices =
         getBezierVertices(start.position, end.position);
       startEndConnection.geometry.verticesNeedUpdate = true;
-
+      satelliteMeshes.needsServerUpdate = true;
 
     }
     return;
@@ -714,6 +695,7 @@ function onMouseMove(event) {
     intersectPointer[0].object.material.emissiveIntensity = 0;
 
     if (controls.enabled) {
+      // Start listening on mousedown for dragging the pointers
       controls.enabled = false;
       $("#graphics-container").on(
           "mousedown",
@@ -723,16 +705,53 @@ function onMouseMove(event) {
           "mouseup",
           onMouseUpDrag
         );
-      console.log("listening for mousedown");
     }
 
   } else {
 
     if ($.isEmptyObject(DRAG_OBJECT) && !controls.enabled) {
+      // Dragging finished, remove listeners and update satellite edges
       controls.enabled = true;
       $("#graphics-container").off("mousedown");
       $("#graphics-container").off("mouseup");
-      console.log("stop listening to mousedown");
+
+      if (satelliteMeshes.needsServerUpdate) {
+
+        var satellitePositions = new Array();
+
+        satelliteMeshes.forEach(function(element) {
+
+          var position;
+
+          if (element.name === "START") {
+            position = start.position.toArray();
+          } else if (element.name === "END") {
+            position = end.position.toArray();
+          } else {
+            position = element.position.toArray();
+          }
+
+          satellitePositions.push({
+            name: element.name,
+            pos: position
+          });
+
+        });
+        var stringifiedData = JSON.stringify(satellitePositions);
+        $.getJSON(
+            "solve.json",
+            stringifiedData,
+            function(response) {
+              if (response.parseError) {
+                console.log("solve.json ERROR: ", response.parseError);
+              } else {
+                loadSatellites(response);
+              }
+            }
+            );
+        satelliteMeshes.needsServerUpdate = false;
+      }
+
     }
 
     if (start.material.emissiveIntensity < 1)

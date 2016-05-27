@@ -4,29 +4,22 @@
 <script src="js/threejs/libs/three.min.js"></script>
 <script src="js/threejs/libs/dat.gui.min.js"></script>
 <script src="js/threejs/libs/OrbitControls.js"></script>
+<script src="js/threejs/libs/Detector.js"></script>
 <!--<script src="js/vendor/jquery-ui.min.js"></script>-->
 
-<!-- Place the dat GUI instance in the right upper corner
-     of the graphics canvas -->
-<style>
-  #graphics-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
-  #gui-container {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 1;
-  }
-</style>
+<link rel="stylesheet" type="text/css" href="css/custom.css"/>
+
 {% endblock %}
 
 {% block main_container %}
 <div id="graphics-container">
-  <!-- A dat GUI instance will be appended here -->
-  <div id="gui-container"></div> 
+  <!-- Append a dat GUI instance to the right upper corner -->
+  <div id="gui-container"></div>
+  <!-- Append eventual error messages to the left upper corner -->
+  <div id="error-msg-container">
+    <!-- This will be filled and emptied dynamically -->
+    <ul class="error-list" > </ul>
+  </div>
 
     {% if highResTextures %}
       <script>var mobileTextures = false;</script>
@@ -34,7 +27,7 @@
       <script>var mobileTextures = true;</script>
     {% endif %}
 
-    <!-- The threejs canvas will be appended here -->
+    <!-- Append the threejs canvas below the navbar -->
     <script src="js/threejs/graphicsMain.js"></script>
   </div>
 </div>

@@ -8,33 +8,6 @@
 
 (def EARTH-RADIUS 6371.0) ;todo, make this a parameter for all functions
 
-(defn undirected-non-duplicate-edges
-  " Returns all unique edges in sat-graph. "
-  ; why is this even here?
-  ; sat-graph-with-edges should not add duplicate edges?
-  [all-edges]
-  (loop [edges all-edges
-         filtered-edges []
-         look-up-table {}]
-    (if (empty? edges)
-      filtered-edges
-      (let [[node-a node-b] (first edges)
-            name-a (:name node-a)
-            name-b (:name node-b)
-            key-a (keyword name-a)
-            key-b (keyword name-b)]
-        (if (or (contains? (key-a look-up-table) name-b)
-                (contains? (key-b look-up-table) name-a))
-          (recur (rest edges) 
-                 filtered-edges 
-                 look-up-table)
-          (recur (rest edges) 
-                 (conj filtered-edges (first edges))
-                 (assoc look-up-table 
-                        key-a
-                        (set (conj (key-a look-up-table) name-b)))))))))
-
-
 (defn graph-weighted-edges
   " Returns the weighted edges of an undirected satellite graph. "
   [sat-graph]
@@ -56,14 +29,14 @@
 
 
 (defn sat-graph-with-edges
-  " Takes as parameter an undirected, weighted graph of satellite nodes 
-    with no edges and adds edges between every node that have unobstructed 
+  " Takes as parameter an undirected, weighted graph of satellite nodes
+    with no edges and adds edges between every node that have unobstructed
     visibility. "
   [sat-graph]
   (if (not (empty? (graph/edges sat-graph)))
     (throw (Exception. "Satellite graph already has edges!"))
     (let [satellites (graph/nodes sat-graph)]
-      (reduce graph/add-edges 
+      (reduce graph/add-edges
               sat-graph
               (for [sat-a satellites
                     sat-b satellites
@@ -71,16 +44,24 @@
                                      (:pos sat-a)
                                      (:pos sat-b)
                                      EARTH-RADIUS)] ;remove EARTH-RADIUS, could be in sat-graph
+                    ;skip:
+                    ;1. B-A edge if A-B edge exists
+                    ;2. any START-END edges
+                    ;3. edges with obstructed visibility
                     :when (and (> (compare (:name sat-a)
                                            (:name sat-b))
                                   0)
+                               (not (or (and (= (:name sat-a) "START")
+                                             (= (:name sat-b) "END"))
+                                        (and (= (:name sat-a) "END")
+                                             (= (:name sat-b) "START"))))
                                (> distance 0))]
                   [sat-a sat-b distance])))))
 
 
 (defn satellite-graph
-  " Takes as parameter a vector of satellites and creates a weighted graph 
-    containing these satellites as nodes. 
+  " Takes as parameter a vector of satellites and creates a weighted graph
+    containing these satellites as nodes.
     Calls sat-graph-with-edges and returns a graph with all edges added. "
   [sat-vector]
   (loop [satellites sat-vector
@@ -93,16 +74,16 @@
 
 
 (defn satellite-graph-with-route
-  " Does the same thing as satellite-graph but adds two nodes with keys :name 
-    which maps to 'START' or 'END', and :pos which maps to 
+  " Does the same thing as satellite-graph but adds two nodes with keys :name
+    which maps to 'START' or 'END', and :pos which maps to
     (:start route) or (:end route). "
-  [satellite-vec route]
+  [sat-vector route]
   (let [start-node {:name "START"
                     :pos (:start route)}
         end-node {:name "END"
                   :pos (:end route)}
-        with-endpoints (conj satellite-vec 
-                             start-node 
+        with-endpoints (conj sat-vector
+                             start-node
                              end-node)
         sat-graph (satellite-graph with-endpoints)]
     sat-graph))
@@ -133,15 +114,15 @@
 
 (defn apply-solution-path
   " Adds a boolean value is_solution_path (= true) to each edge pair in sat-edges if the edge pair is part of the sequence of nodes in solution-path. Else false.
-    This allows easier graphical representations of the shortest path via satellites. 
+    This allows easier graphical representations of the shortest path via satellites.
     Assumes undirected edges. "
   [sat-edges solution-path]
   (loop [edges sat-edges
          processed-edges []]
     (if (empty? edges)
       processed-edges
-      (let [new-edge (conj (first edges) 
-                           {:is_solution_path 
+      (let [new-edge (conj (first edges)
+                           {:is_solution_path
                              (edge-is-in-solution
                                (first edges)
                                solution-path)})]

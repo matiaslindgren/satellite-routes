@@ -2,6 +2,10 @@
   (:require [loom.graph :as graph]
             [loom.alg :as graph-alg]
             [clojure.string :as string]
+            [clj-json.core :as json]
+            [ring.util.codec :as codec]
+            [clojure.walk :as walk]
+            [clojure.set :as clj-set]
             [clojure.pprint :as pprint]
             [satellite-routes.utils.core :as core]
             [satellite-routes.utils.algorithm :as alg]))
@@ -9,7 +13,7 @@
 (def EARTH-RADIUS 6371.0)
 
 (defn integer-or-nil
-  " Returns the parameter as an integer if the parameter is a string 
+  " Returns the parameter as an integer if the parameter is a string
   containing an unsigned integer, else nil. "
   [string]
   (if-let [match (and string (re-matches #"\d+" string))]
@@ -17,72 +21,112 @@
     nil))
 
 (defn float-or-nil
-  " Returns the parameter as a float if the parameter is a string 
+  " Returns the parameter as a float if the parameter is a string
   containing an unsigned integer or float, else nil. "
   [string]
   (if-let [match (and string (re-matches #"[0-9]*\.?[0-9]+" string))]
     (Float/parseFloat match)
     nil))
 
-(defn valid-polyhedron?
-  [polyhedron-name]
-  (let [polyhedrons #{"tetrahedron"
-                      "cube"
-                      "octahedron"
-                      "icosahedron"
-                      "dodecahedron"}]
-    (contains? polyhedrons polyhedron-name)))
+(defn all-floats-or-nil
+  " Takes a sequence of strings as parameter and returns a vector where all
+  the strings have been converted to floats. If any of the float parses fail,
+  return nil. "
+  [str-seq]
+  (if (empty? str-seq)
+    nil
+    (loop [str-float-seq str-seq
+           float-vec []]
+      (if (empty? str-float-seq)
+        float-vec
+        (let [string (first str-float-seq)]
+          (if-let [match (and string (re-matches #"-?[0-9]*\.?[0-9]+" string))]
+            (recur (rest str-float-seq)
+                   (conj float-vec (Float/parseFloat match)))
+            nil))))))
 
+(defn polyhedron-or-nil
+  [string]
+  (if (= 0 (count string))
+    "NONE"
+    (let [polyhedrons #{"tetrahedron"
+                        "cube"
+                        "octahedron"
+                        "icosahedron"
+                        "dodecahedron"}]
+      (if (contains? polyhedrons string)
+        string
+        nil))))
 
-(defn parse-polyhedron-query
-  " Parses the query for generating polyhedron data.
-  Returns a map of the parsed query parameters. "
-  ;todo: add error message to response
+(defn parse-query
+  " Parses the query for data generation request.
+  Returns a map of the parsed query parameters.
+  All missing or invalid parameters will be returned as nil. "
   [query-params]
-  (let [planet-radius-default EARTH-RADIUS
-        alt-default 0.0
+  (let [sat-count (integer-or-nil (:satelliteCount query-params))
+        min-alt (float-or-nil (:minAltitude query-params))
+        max-alt (float-or-nil (:maxAltitude query-params))
+        fixed-alt (float-or-nil (:altitude query-params))
+        planet-radius (float-or-nil (:planetRadius query-params))
+        polyhedron (polyhedron-or-nil (:polyhedron query-params))
+        start (all-floats-or-nil (:start query-params))
+        end (all-floats-or-nil (:end query-params))]
+    {:satelliteCount sat-count
+     :minAltitude min-alt
+     :maxAltitude max-alt
+     :altitude fixed-alt
+     :planetRadius planet-radius
+     :polyhedron polyhedron
+     :start start
+     :end end}))
 
-        polyhedron (:polyhedron query-params)
-        pla-rad (float-or-nil (:planetRadius query-params))
-        alt (float-or-nil (:altitude query-params))
-
-        altitude (or alt alt-default)
-        planet-radius (or pla-rad planet-radius-default)]
-    {:polyhedron polyhedron
-     :planet-radius planet-radius
-     :altitude altitude}))
-
-
-(defn parse-randomization-query
-  " Parses the query for generating randomized data.
-  Returns a map of the parsed query parameters. "
-  ;todo: add error message to response
-  [query-params]
+(defn nils-as-defaults
+  " Replace all nil values with the corresponding default values. "
+  [parsed-query]
   (let [sat-count-default 5
         min-alt-default 300.0
         max-alt-default 700.0
+        fixed-alt-default 0.0
         planet-radius-default EARTH-RADIUS
+        polyhedron-default "cube"
+        ;start and end defaults depends on the planet-radius
 
-        sat-cnt (integer-or-nil (:satelliteCount query-params))
-        min-alt (float-or-nil (:minAltitude query-params))
-        max-alt (float-or-nil (:maxAltitude query-params))
-        pla-rad (float-or-nil (:planetRadius query-params))
+        sat-count (:satelliteCount parsed-query)
+        min-alt (:minAltitude parsed-query)
+        max-alt (:maxAltitude parsed-query)
+        fixed-alt (:altitude parsed-query)
+        planet-radius (:planetRadius parsed-query)
+        polyhedron (:polyhedron parsed-query)
+        start (:start parsed-query)
+        end (:end parsed-query)
 
-        sat-count (or sat-cnt sat-count-default)
+        satellite-count (or sat-count sat-count-default)
         min-altitude (if (and min-alt max-alt (> max-alt min-alt))
                        min-alt
                        min-alt-default)
         max-altitude (if (and min-alt max-alt (> max-alt min-alt))
                        max-alt
                        max-alt-default)
-        planet-radius (or pla-rad planet-radius-default)]
-    {:planet-radius planet-radius
-     :min-altitude min-altitude
-     :max-altitude max-altitude
-     :sat-count sat-count}))
+        fixed-altitude (or fixed-alt fixed-alt-default)
+        planet-radius (or planet-radius planet-radius-default)
+        polyhedron (or polyhedron polyhedron-default)
+
+        start-default [0 0 planet-radius]
+        end-default [0 0 (- planet-radius)]
+
+        start (or start start-default)
+        end (or end end-default)]
+    {:satelliteCount satellite-count
+     :minAltitude min-altitude
+     :maxAltitude max-altitude
+     :altitude fixed-altitude
+     :planetRadius planet-radius
+     :polyhedron polyhedron
+     :start start
+     :end end}))
 
 (defn satellites-random
-  " Generates n satellite positions from 0 to n-1 randomly at least min-alt km 
+  " Generates n satellite positions from 0 to n-1 randomly at least min-alt km
   and at most max-alt above a sphere with the radius planet-radius. "
   [n min-alt max-alt planet-radius]
   (let [rand-longitude #(- (rand 360) 180)
@@ -121,15 +165,16 @@
   [planet-radius]
   (let [rand-longitude #(- (rand 360) 180)
         rand-latitude #(- (rand 180) 90)
-        start (alg/as-cartesian 
+        start (alg/as-cartesian
                 planet-radius
                 (rand-latitude)
                 (rand-longitude))
-        end (alg/as-cartesian 
+        end (alg/as-cartesian
               planet-radius
               (rand-latitude)
               (rand-longitude))]
-    [start end]))
+    {:start start
+     :end end}))
 
 
 (defn generate-graph-from-query
@@ -137,33 +182,28 @@
   and returns a graph with satellites as nodes and their connections as
   edges. The edges include the shortest path from START to END."
   [raw-query-params]
-  ;The massive if + let construct is a bit clumsy, maybe make a 
+  ;The massive if + let construct is a bit clumsy, maybe make a
   ;case switch somewhere that checks what sort of generation query is being sent.
   ;Also, it would be polite to send an error message if the query parameters
-  ;were incorrect.
-  (let [generated-data 
-        (if (valid-polyhedron? (:polyhedron raw-query-params))
-          (let [parsed-query (parse-polyhedron-query raw-query-params)
-                from-polyhedron (satellites-polyhedron
-                                  (:polyhedron parsed-query)
-                                  (:altitude parsed-query)
-                                  (:planet-radius parsed-query))]
-            from-polyhedron)
-          (let [parsed-query (parse-randomization-query raw-query-params)
-                from-random (satellites-random
-                              (:sat-count parsed-query)
-                              (:min-altitude parsed-query)
-                              (:max-altitude parsed-query)
-                              (:planet-radius parsed-query))]
-            from-random))
+  ;were incorrect-pos.
+  (let [parsed-query (nils-as-defaults (parse-query raw-query-params))
+        generated-data (if (= "NONE" (:polyhedron parsed-query))
+                         (satellites-random
+                           (:satelliteCount parsed-query)
+                           (:minAltitude parsed-query)
+                           (:maxAltitude parsed-query)
+                           (:planetRadius parsed-query))
+                         (satellites-polyhedron
+                           (:polyhedron parsed-query)
+                           (:altitude parsed-query)
+                           (:planetRadius parsed-query)))
 
-        ;rnd route is temp, move start end to parameters or smthing
-        [rnd-start rnd-end] (random-route EARTH-RADIUS)
-        rnd-route {:start rnd-start :end rnd-end}
+        route {:start (:start parsed-query)
+               :end (:end parsed-query)}
 
         sat-graph (core/satellite-graph-with-route
                     generated-data
-                    rnd-route)
+                    route)
         nodes (core/graph-nodes sat-graph)
         edges (core/graph-weighted-edges sat-graph)
         solution (core/solve-route sat-graph)
@@ -171,6 +211,49 @@
     {:nodes nodes
      :edges edges-with-solution}))
 
+(defn errors-in-query
+  " Return an error message if sat-vector is invalid.
+  Valid vector:
+    - All nodes have keys :name and :pos.
+    - Exactly one node with name 'START' and one with 'END' exists.
+    - :pos must be a vector with three numbers. "
+  [sat-vector]
+  (if (empty? sat-vector)
+    "No satellites loaded"
+    (loop [sat-vec sat-vector
+           parsed-names #{}]
+      (if (empty? sat-vec)
+        (if (not (clj-set/subset? #{"START" "END"} parsed-names))
+          (str "START or END missing: " parsed-names)
+          "")
+        (let [current-node (first sat-vec)
+              node-pos (:pos current-node)
+              valid-pos (and (= (count node-pos) 3)
+                             (every? number? node-pos))]
+          (if (not valid-pos)
+            (str "Invalid satellite pos: " node-pos)
+            (let [node-name (:name current-node)]
+              (if (contains? parsed-names node-name)
+                (str "Duplicate satellite name: " node-name)
+                (recur (rest sat-vec) (conj parsed-names node-name))))))))))
+
+(defn update-solution-from-query
+  " Parses a sequence of satellites, calculates new edges and the shortest
+  path. Returns a map of nodes and edges with solutions similarly to
+  generate-graph-from-query. "
+  [raw-query-string]
+  (let [parsed-data (json/parse-string (codec/percent-decode raw-query-string))
+        sat-vector (walk/keywordize-keys parsed-data)
+        errors (errors-in-query sat-vector)]
+    (if (not (empty? errors))
+      {:parseError errors}
+      (let [sat-graph (core/satellite-graph sat-vector)
+            nodes (core/graph-nodes sat-graph)
+            edges (core/graph-weighted-edges sat-graph)
+            solution (core/solve-route sat-graph)
+            edges-with-solution (core/apply-solution-path edges solution)]
+        {:nodes nodes
+         :edges edges-with-solution}))))
 
 
 

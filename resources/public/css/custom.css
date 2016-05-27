@@ -67,3 +67,32 @@ body#home-body {
 .home-page-container .jumbotron {
   background-color: transparent;
 }
+
+/* Append the ThreeJS canvas below the navbar */
+#graphics-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+/* Append a dat GUI instance to the right upper corner */
+#gui-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+}
+/* Append eventual error messages to the left upper corner */
+#error-msg-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+#error-msg-container .error-list {
+  list-style-type: none;
+  padding: 10px 10px;
+}
+#error-msg-container .error-list li {
+  font-size: 120%;
+  color: #f00;
+}

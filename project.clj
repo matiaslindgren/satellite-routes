@@ -22,6 +22,7 @@
                  [compojure "1.5.0"]
                  [ring-webjars "0.1.1"]
                  [ring/ring-defaults "0.2.0"]
+                 [ring/ring-core "1.5.0-RC1"]
                  [mount "0.1.10"]
                  [cprop "0.1.7"]
                  [org.clojure/tools.cli "0.3.4"]
@@ -40,12 +41,11 @@
 
   :main satellite-routes.core
 
-  :plugins [[cider/cider-nrepl "0.12.0"]
-            [lein-cprop "1.0.1"]]
+  :plugins [[lein-cprop "1.0.1"]]
   :target-path "target/%s/"
   :profiles
   {:uberjar {:omit-source true
-             
+
              :aot :all
              :uberjar-name "satellite-routes.jar"
              :source-paths ["env/prod/clj"]
@@ -57,8 +57,8 @@
                                  [ring/ring-devel "1.4.0"]
                                  [pjstadig/humane-test-output "0.8.0"]]
                   :plugins      [[com.jakemccrary/lein-test-refresh "0.14.0"]]
-                  
-                  
+
+
                   :source-paths ["env/dev/clj" "test/clj"]
                   :resource-paths ["env/dev/resources"]
                   :repl-options {:init-ns user}

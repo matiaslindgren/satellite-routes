@@ -72,42 +72,35 @@
     (let [close-enough? #(< (Math/abs (- %1 %2)) 1E-6)]
       (is (close-enough? 0.6666 (parser/float-or-nil "0.6666")))))
 
-  (testing "parse-polyhedron-query"
-    " Test that all polyhedron vertexes are places at expected locations. "
-    (let [query-params {:planetRadius "1"
-                        :altitude "1"}
-          {min-alt :altitude
-           planet-r :planet-radius} (parser/parse-polyhedron-query query-params)]
-      (let [pos-data (parser/satellites-polyhedron
-                       "tetrahedron" min-alt planet-r)]
-        (is (positions-valid? pos-data 0.9 2.1)))
-      (let [pos-data (parser/satellites-polyhedron
-                       "cube" min-alt planet-r)]
-        (is (positions-valid? pos-data 0.9 2.1)))
-      (let [pos-data (parser/satellites-polyhedron
-                       "octahedron" min-alt planet-r)]
-        (is (positions-valid? pos-data 0.9 2.1)))
-      (let [pos-data (parser/satellites-polyhedron
-                       "icosahedron" min-alt planet-r)]
-        (is (positions-valid? pos-data 0.9 2.1)))
-      (let [pos-data (parser/satellites-polyhedron
-                       "dodecahedron" min-alt planet-r)]
-        (is (positions-valid? pos-data 0.9 2.1)))))
+  (testing "valid-update-query"
+    (let [missing-start [{:name "SAT1" :pos [1.0 0 -1.0]}
+                         {:name "END" :pos [2.0 0 -2.0]}]
+          missing-end [{:name "SAT1" :pos [1.0 0 -1.0]}
+                       {:name "START" :pos [2.0 0 -2.0]}]
+          wrong-sat [{:name "SATb" :pos [1.0 0 -1.0]}
+                     {:name "START" :pos [2.0 0 -2.0]}
+                     {:name "END" :pos [2.0 2 -2.0]}]
+          bad-pos [{:name "SAT1" :pos [2 0 -1.0]}
+                   {:name "START" :pos ["2" 0 -2.0]}
+                   {:name "END" :pos [2.0 2 -2.0]}]
+          wrong-dimension [{:name "SAT1" :pos [-1.0]}
+                           {:name "START" :pos [2.0 0 -3.0]}
+                           {:name "END" :pos [2.0 2 -2.0]}]
+          duplicate [{:name "SAT1" :pos [-1.0 2 3]}
+                     {:name "START" :pos [2.0 0 -3.0]}
+                     {:name "SAT1" :pos [5.0 0 -3.0]}
+                     {:name "END" :pos [2.0 2 -2.0]}]]
+      (is (not (empty? (parser/errors-in-query missing-start))))
+      (is (not (empty? (parser/errors-in-query missing-end))))
+      (is (not (empty? (parser/errors-in-query wrong-sat))))
+      (is (not (empty? (parser/errors-in-query bad-pos))))
+      (is (not (empty? (parser/errors-in-query wrong-dimension))))
+      (is (not (empty? (parser/errors-in-query duplicate)))))
+    (let [correct [{:name "SAT1" :pos [2 0 -1.0]}
+                   {:name "START" :pos [2 0 -2.0]}
+                   {:name "END" :pos [2.0 2 -2.0]}]]
+      (is (empty? (parser/errors-in-query correct))))))
 
-  (testing "parse-randomization-query"
-    " Test that all randomly placed satellites are placed within expected
-    altitudes. "
-    (let [query-params {:satelliteCount "100"
-                        :minAltitude "1"
-                        :maxAltitude "2"
-                        :planetRadius "1"}
-          {sat-count :sat-count
-           min-alt :min-altitude
-           max-alt :max-altitude
-           pl-rad :planet-radius} (parser/parse-randomization-query query-params)]
-      (let [pos-data (parser/satellites-random
-                       sat-count min-alt max-alt pl-rad)]
-        (is (positions-valid? pos-data 0.9 3.1))))))
 
 (deftest test-core ;todo: implement a fancy random parameter generator for sat positions
   (testing "generate-satellite-graph"
@@ -121,10 +114,7 @@
           "Wrong amount of nodes, expected 3.")
       (let [graph-edges (core/graph-weighted-edges sat-graph)]
         (is (= (count graph-edges) 2)
-            "Wrong amount of edges, expected 2.")
-        (is (= (count (core/undirected-non-duplicate-edges
-                        graph-edges)) 1)
-            "Wrong amount of unique edges, expected 1."))
+            "Wrong amount of edges, expected 2."))
       (let [sat-seq-with-endpoints (conj sat-seq 
                                          {:name "START"
                                           :pos [0.57 0.58 0.59]}

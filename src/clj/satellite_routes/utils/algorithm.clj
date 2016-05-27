@@ -105,6 +105,7 @@
   " Returns the distance between positions a and b if they have contact, else -1.
     Basically calculates if the line segment from position a to position b intersects a sphere, of a certain radius, centered at the origin. "
   [a-pos b-pos radius]
+  ;contents of let are verbose but fast
   (let [[x1 y1 z1] a-pos
         [x2 y2 z2] b-pos
         dx (- x2 x1)
