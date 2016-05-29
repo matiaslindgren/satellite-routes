@@ -203,7 +203,8 @@
 
         sat-graph (core/satellite-graph-with-route
                     generated-data
-                    route)
+                    route
+                    (:planetRadius parsed-query))
         nodes (core/graph-nodes sat-graph)
         edges (core/graph-weighted-edges sat-graph)
         solution (core/solve-route sat-graph)
@@ -242,12 +243,16 @@
   path. Returns a map of nodes and edges with solutions similarly to
   generate-graph-from-query. "
   [raw-query-string]
-  (let [parsed-data (json/parse-string (codec/percent-decode raw-query-string))
-        sat-vector (walk/keywordize-keys parsed-data)
-        errors (errors-in-query sat-vector)]
+  (let [parsed-data (-> raw-query-string
+                        codec/percent-decode
+                        json/parse-string
+                        walk/keywordize-keys)
+        errors (errors-in-query (:satellites parsed-data))]
     (if (not (empty? errors))
       {:parseError errors}
-      (let [sat-graph (core/satellite-graph sat-vector)
+      (let [planet-radius (:planetRadius parsed-data)
+            sat-vector (:satellites parsed-data)
+            sat-graph (core/satellite-graph sat-vector planet-radius)
             nodes (core/graph-nodes sat-graph)
             edges (core/graph-weighted-edges sat-graph)
             solution (core/solve-route sat-graph)

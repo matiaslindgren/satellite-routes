@@ -6,10 +6,10 @@
   ;Some polyhedrons have 2 orientation sets, they are not available here.
   [R polyhedron-name]
   (let [gr (/ (+ 1 (Math/sqrt 5)) 2) ;Golden ratio
-        a (case polyhedron-name 
-            ;Awful heuristic inspired by Wikipedia to find a scaling factor for placing 
+        a (case polyhedron-name
+            ;Awful heuristic inspired by Wikipedia to find a scaling factor for placing
             ;polyhedron vertices on the surface of the sphere.
-            ;It is probably possible to derive the value of a only by using 
+            ;It is probably possible to derive the value of a only by using
             ;Schläfli symbols.
             "tetrahedron" (/ R (Math/sqrt 3))
             "cube" (/ R (Math/sqrt 3))
@@ -41,7 +41,7 @@
                                          (= 0 x y)))]
                       [x y z])
 
-      "icosahedron"  (for [x [-a -b 0 a b] 
+      "icosahedron"  (for [x [-a -b 0 a b]
                            y [-a -b 0 a b]
                            z [-a -b 0 a b]
                            :when (or (and (= 0 x)
@@ -72,7 +72,7 @@
 
 
 (defn truncate-zero
-  " If the absolute value of the parameter x is less than 1e-9, 
+  " If the absolute value of the parameter x is less than 1e-9,
   return 0.0, else return the parameter. "
   [x]
   (if (< (Math/abs x) 1E-9)
@@ -80,7 +80,7 @@
     x))
 
 (defn as-cartesian
-  " Return a vector [x y z] from the geographic coordinates 
+  " Return a vector [x y z] from the geographic coordinates
   [r latitude longitude] given as parameters. "
   [r latitude longitude]
   (let [phi (Math/toRadians latitude)
@@ -105,7 +105,7 @@
   " Returns the distance between positions a and b if they have contact, else -1.
     Basically calculates if the line segment from position a to position b intersects a sphere, of a certain radius, centered at the origin. "
   [a-pos b-pos radius]
-  ;contents of let are verbose but fast
+  ; contents of let are verbose but fast
   (let [[x1 y1 z1] a-pos
         [x2 y2 z2] b-pos
         dx (- x2 x1)
@@ -122,8 +122,10 @@
                 (* y1 y1)
                 (* z1 z1))
              (* radius radius))
-        sqrt-expression (- (* b b)
-                           (* 4 a c))]
+        ; using auto-promoting *-operators to prevent integer overflow when
+        ; handling very large distances
+        sqrt-expression (- (*' b b)
+                           (*' 4 a c))]
     (if (and (> sqrt-expression 0) ; true if there's an intersection somewhere
              (let [xdx (* (- 0 x1) dx) ; check if intersection is between positions a and b
                    ydy (* (- 0 y1) dy)

@@ -81,18 +81,11 @@ body#home-body {
   right: 0;
   z-index: 1;
 }
-/* Append eventual error messages to the left upper corner */
-#error-msg-container {
-  position: absolute;
+/* Append an fps counter to the right upper corner 
+ * Override inline style 'position: fixed' */
+#stats-container div[style]{
+  position: absolute !important;
   top: 0;
   left: 0;
   z-index: 1;
-}
-#error-msg-container .error-list {
-  list-style-type: none;
-  padding: 10px 10px;
-}
-#error-msg-container .error-list li {
-  font-size: 120%;
-  color: #f00;
 }

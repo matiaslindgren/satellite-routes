@@ -25,10 +25,6 @@
     (let [response ((app) (request :get "/about"))]
       (is (= 200 (:status response)))))
 
-  (testing "app route"
-    (let [response ((app) (request :get "/app"))]
-      (is (= 200 (:status response)))))
-
   (testing "not-found route"
     (let [response ((app) (request :get "/invalid"))]
       (is (= 404 (:status response))))))

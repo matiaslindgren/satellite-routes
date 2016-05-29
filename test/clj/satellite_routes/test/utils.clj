@@ -28,9 +28,11 @@
     (is (> 0 (alg/unobstructed-distance [2 0 0] [-2 0 0] 1)))
     (is (> 0 (alg/unobstructed-distance [0 0 2] [0 0 -2] 1)))
     (is (> 0 (alg/unobstructed-distance [0 2 0] [0 -2 0] 1)))
+    (is (> 0 (alg/unobstructed-distance [0 1e9 0] [0 -1e9 0] 1e6)))
     (is (< 0 (alg/unobstructed-distance [2 2 2] [1.5 1.5 1.5] 1)))
     (is (< 0 (alg/unobstructed-distance [-2 -2 -2] [-1.5 -1.5 -1.5] 1)))
-    (is (< 0 (alg/unobstructed-distance [1.5 0 0] [0 1.5 0] 1))))
+    (is (< 0 (alg/unobstructed-distance [1.5 0 0] [0 1.5 0] 1)))
+    (is (< 0 (alg/unobstructed-distance [0 1e9 0] [1e6 1e9 0] 1e6))))
 
   (testing "polyhedron-coordinates"
     " Test if correct amount of vertices is returned. "
@@ -105,18 +107,19 @@
                    {:name "TEST-SAT1" :pos [1.5 1.5 1.5]}
                    {:name "TEST-SAT2" :pos [-2 -2 -2]}]
           planet-radius 1.0
-          sat-graph (core/satellite-graph sat-seq)]
+          sat-graph (core/satellite-graph sat-seq planet-radius)]
       (is (= (count (core/graph-nodes sat-graph)) (count sat-seq))
           "Wrong amount of nodes, expected 3.")
       (let [graph-edges (core/graph-weighted-edges sat-graph)]
         (is (= (count graph-edges) 2)
             "Wrong amount of edges, expected 2."))
-      (let [sat-seq-with-endpoints (conj sat-seq 
+      (let [sat-seq-with-endpoints (conj sat-seq
                                          {:name "START"
                                           :pos [0.57 0.58 0.59]}
                                          {:name "END"
                                           :pos [-0.2 0.95 0.35]})
-            sat-graph-with-endpoints (core/satellite-graph sat-seq-with-endpoints)
+            sat-graph-with-endpoints
+              (core/satellite-graph sat-seq-with-endpoints planet-radius)
             solution-path (core/solve-route sat-graph-with-endpoints)
             edges (core/graph-weighted-edges sat-graph-with-endpoints)
             with-solution-flags (core/apply-solution-path edges solution-path)
@@ -131,4 +134,4 @@
         (is (and (some #(is-in-solution? % "START" "TEST-SAT1") with-solution-flags)
                  (some #(is-in-solution? % "END" "TEST-SAT1") with-solution-flags))
             "Expected TEST-SAT1 on the valid route.")))))
-            
+

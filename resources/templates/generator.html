@@ -8,17 +8,21 @@
 <div class="text-page-container">
   <div class="generate-info">
     <h2>Generator API</h2>
+
     <br>
     <br>
 
-    <p>When the URI <code>/generator.json</code> is accessed with an AJAX request, the server generates a graph with satellites in different locations. Depending on the request, the locations can be pseudo-randomly selected and at different altitudes or at fixed altitudes forming certain geometric figures. The graph returned by the server is a hashmap with the keys <code>nodes</code> and <code>edges</code>, which is returned as serialized JSON. The content of <code>nodes</code> and <code>edges</code> is explained in more detail below.</p> 
+    <p>When the URI <code>/generator.json</code> is requested, the server generates a graph with satellites in different locations. Depending on the request, the locations can be pseudo-randomly selected and at different altitudes or at fixed altitudes forming certain <a href="https://en.wikipedia.org/wiki/Polyhedron">polyhedrons</a>. The graph returned by the server is an object with the keys <code>nodes</code> and <code>edges</code>, which is returned as serialized JSON. The content of <code>nodes</code> and <code>edges</code> is explained in more detail below.</p> 
 
     <br>
 
     <h3>Data set types</h3>
+
     <br>
+
     <h4>Random data</h4>
       <p>Currently 4 different parameters can be given with the request to be passed to the generator to create random values:</p>
+
       <br>
 
       <dl class="dl-horizontal">
@@ -36,6 +40,7 @@
 
     <h4>Polyhedrons</h4>
       <p>It is also possible to generate satellite constellations in form of <a href="https://en.wikipedia.org/wiki/Platonic_solid">platonic solids</a>, where a satellite will be placed at each vertex of the chosen polyhedron. 3 different parameters can be given for generating polyhedrons:
+
       <br>
 
       <dl class="dl-horizontal">
@@ -51,7 +56,7 @@
                   <li>dodecahedron</li>
                   <li>icosahedron</li>
                 </ul>
-                The name must be exact, otherwise the server will generate random data as described above. </dd>
+                The name must be exact, otherwise it defaults to 'cube'. If left empty, the server generates random data with default values as described above.</dd>
           <dt>altitude</dt>
             <dd>Altitude above the planet surface for a satellite. Must be a positive number. Defaults to 0.0.</dd>
           <dt>planetRadius</dt>
@@ -61,7 +66,7 @@
       <br>
 
     <h4>Incorrect input</h4>
-      <p>The server will replace all incorrect parameter values with their corresponding default values. Also, if the maximum altitude is less than the minimum altitude, the default values for both altitudes will be used. If the polyhedron string is incorrect, the server defaults to generating random data.</p>
+      <p>The server will replace all incorrect parameter values with their corresponding default values. Also, if the maximum altitude is less than the minimum altitude, the default values for both altitudes will be used. If the polyhedron string is incorrect but not empty, 'cube' will be used. If empty, the server defaults to generating random data.</p>
 
     <br>
 
@@ -70,10 +75,12 @@
     <br>
     <h4>Nodes</h4>
     <p>Nodes are given as a sequence of hashmaps, where one hashmap corresponds to a node with the keys <code>name</code> and <code>pos</code>.
-    The position is a three dimensional vector in cartesian coordinates following the <a href="https://en.wikipedia.org/wiki/ECEF">ECEF system</a>. Note that in this app the Earth is modeled as a perfect sphere and not an ellipsoid, which would be more realistic. Below is the first node in raw format and a table of all nodes.</p>
+    The position is a three dimensional vector in cartesian coordinates following the <a href="https://en.wikipedia.org/wiki/ECEF">ECEF system</a>. Note that in this app the Earth is modeled as a perfect sphere and not an ellipsoid, which would be more realistic. Below is the first node in raw format (<a href="https://clojuredocs.org/clojure.core/hash-map">Clojure hash map</a>) and a table of all nodes.</p>
 
     <br>
+
     <code>{{ nodes|first }}</code>
+
     <br>
     <br>
 
@@ -101,9 +108,12 @@
     <br>
 
     <h4>Edges</h4>
-    <p>Edges are given as a sequence (vector) of vectors, where one vector correspond to an edge. In this vector, indexes 0 and 1 contain the nodes which are connected and index 2 contains the float value corresponding to the distance between these nodes measured in kilometers. Index 3 contains a hashmap with only one key <code>is_solution_path</code>, which maps to <code>true</code> if the corresponding edge is part of the shortest path between nodes named "START" and "END", else <code>false</code>. Below is the first edge in raw format and a table of all edges. </p>
+    <p>Edges are given as a sequence (vector) of vectors, where one vector correspond to an edge. In this vector, indexes 0 and 1 contain the nodes which are connected and index 2 contains the float value corresponding to the distance between these nodes measured in kilometers. Index 3 contains a hashmap with only one key <code>is_solution_path</code>, which maps to <code>true</code> if the corresponding edge is part of the shortest path between nodes named "START" and "END", else <code>false</code>. Below is the first edge in raw format (<a href="https://clojuredocs.org/clojure.core/hash-map">Clojure hash map</a>) and a table of all edges. </p>
+
     <br>
+
     <code>{{ edges|first }}</code>
+
     <br>
     <br>
 

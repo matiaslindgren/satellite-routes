@@ -6,8 +6,6 @@
             [satellite-routes.utils.algorithm :as alg]))
 
 
-(def EARTH-RADIUS 6371.0) ;todo, make this a parameter for all functions
-
 (defn graph-weighted-edges
   " Returns the weighted edges of an undirected satellite graph. "
   [sat-graph]
@@ -32,7 +30,7 @@
   " Takes as parameter an undirected, weighted graph of satellite nodes
     with no edges and adds edges between every node that have unobstructed
     visibility. "
-  [sat-graph]
+  [sat-graph planet-radius]
   (if (not (empty? (graph/edges sat-graph)))
     (throw (Exception. "Satellite graph already has edges!"))
     (let [satellites (graph/nodes sat-graph)]
@@ -43,7 +41,7 @@
                     :let [distance (alg/unobstructed-distance
                                      (:pos sat-a)
                                      (:pos sat-b)
-                                     EARTH-RADIUS)] ;remove EARTH-RADIUS, could be in sat-graph
+                                     planet-radius)]
                     ;skip:
                     ;1. B-A edge if A-B edge exists
                     ;2. any START-END edges
@@ -63,11 +61,11 @@
   " Takes as parameter a vector of satellites and creates a weighted graph
     containing these satellites as nodes.
     Calls sat-graph-with-edges and returns a graph with all edges added. "
-  [sat-vector]
+  [sat-vector planet-radius]
   (loop [satellites sat-vector
          wgraph (graph/weighted-graph)]
     (if (empty? satellites)
-      (sat-graph-with-edges wgraph)
+      (sat-graph-with-edges wgraph planet-radius)
       (let [sat (first satellites)]
         (recur (rest satellites)
                (graph/add-nodes wgraph sat))))))
@@ -77,7 +75,7 @@
   " Does the same thing as satellite-graph but adds two nodes with keys :name
     which maps to 'START' or 'END', and :pos which maps to
     (:start route) or (:end route). "
-  [sat-vector route]
+  [sat-vector route planet-radius]
   (let [start-node {:name "START"
                     :pos (:start route)}
         end-node {:name "END"
@@ -85,7 +83,7 @@
         with-endpoints (conj sat-vector
                              start-node
                              end-node)
-        sat-graph (satellite-graph with-endpoints)]
+        sat-graph (satellite-graph with-endpoints planet-radius)]
     sat-graph))
 
 

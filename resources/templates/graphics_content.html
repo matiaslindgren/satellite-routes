@@ -5,6 +5,7 @@
 <script src="js/threejs/libs/dat.gui.min.js"></script>
 <script src="js/threejs/libs/OrbitControls.js"></script>
 <script src="js/threejs/libs/Detector.js"></script>
+<script src="js/threejs/libs/stats.min.js"></script>
 <!--<script src="js/vendor/jquery-ui.min.js"></script>-->
 
 <link rel="stylesheet" type="text/css" href="css/custom.css"/>
@@ -15,17 +16,8 @@
 <div id="graphics-container">
   <!-- Append a dat GUI instance to the right upper corner -->
   <div id="gui-container"></div>
-  <!-- Append eventual error messages to the left upper corner -->
-  <div id="error-msg-container">
-    <!-- This will be filled and emptied dynamically -->
-    <ul class="error-list" > </ul>
-  </div>
-
-    {% if highResTextures %}
-      <script>var mobileTextures = false;</script>
-    {% else %}
-      <script>var mobileTextures = true;</script>
-    {% endif %}
+  <!-- Append fps counter to the left upper corner -->
+  <div id="stats-container"></div>
 
     <!-- Append the threejs canvas below the navbar -->
     <script src="js/threejs/graphicsMain.js"></script>

@@ -12,10 +12,7 @@
 ; Views for routes
 ; ----------------
 
-(defn home-page []
-  (layout/render "home.html"))
-
-(defn app-page [query]
+(defn home-page [query]
   (if (= (:query-string query) "high-res")
     (layout/render "graphics_content.html" {:highResTextures true})
     (layout/render "graphics_content.html" {:highResTextures false})))
@@ -52,8 +49,7 @@
 
 
 (defroutes home-routes
-  (GET "/" [] (home-page))
-  (GET "/app" [] #(app-page %))
+  (GET "/" [] #(home-page %))
   (GET "/generator.json" [] #(generate-json %))
   (GET "/generator" [] #(view-json %))
   (GET "/solve.json" [] #(solve-data %))
