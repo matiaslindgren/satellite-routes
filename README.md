@@ -15,6 +15,7 @@ Currently deployed to [Heroku](http://satellite-thing.herokuapp.com/)
 - Implement sensible random parameter generators for tests
 - Make tests for JavaScript?
 - Generate documentation and host on github.io
+- The statelessness of the server causes unneeded delays when updating satellite positions. Major speedups could probably be achieved by caching or 'cookying' the constructed graphs for the duration of each visit.
 
 
 ## License
